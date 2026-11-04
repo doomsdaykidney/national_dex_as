@@ -103,6 +103,21 @@
     </div>
   </div>
 
+  <!-- Location Pokémon List Modal -->
+  <div class="modal-backdrop hidden" id="locationModal" role="dialog" aria-modal="true" aria-labelledby="locModalTitle">
+    <div class="modal-card location-modal-card">
+      <div class="modal-header">
+        <div class="loc-modal-header-info">
+          <h2 id="locModalTitle" class="loc-modal-title">Location</h2>
+          <div id="locModalSubtitle" class="loc-modal-subtitle"></div>
+        </div>
+        <button type="button" class="close-btn" id="closeLocModalBtn" aria-label="Close">×</button>
+      </div>
+      <div id="locModalTabs" class="loc-modal-tabs hidden"></div>
+      <div id="locModalList" class="loc-modal-list"></div>
+    </div>
+  </div>
+
   <script src="app.js" defer></script>
 </body>
 </html>

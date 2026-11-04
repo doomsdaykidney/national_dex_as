@@ -24,6 +24,12 @@
   const boxSlider = $("boxSlider");
   const sliderFill = $("sliderFill");
   const sliderStops = $("sliderStops");
+  const locationModal = $("locationModal");
+  const locModalTitle = $("locModalTitle");
+  const locModalSubtitle = $("locModalSubtitle");
+  const closeLocModalBtn = $("closeLocModalBtn");
+  const locModalTabs = $("locModalTabs");
+  const locModalList = $("locModalList");
 
   let pokemon = [];
   let caughtSet = new Set();
@@ -94,6 +100,70 @@
       flush();
       return out.join(", ");
     }).join(" / ");
+  }
+
+  function extractLocations(p) {
+    if (!p || !p.Location) return [];
+    let s = p.Location.trim();
+    if (s.startsWith("Unobtainable")) {
+      return ["Unobtainable"];
+    }
+    for (const g of GAMES) {
+      if (s.startsWith(g + ": ")) {
+        s = s.slice(g.length + 2).trim();
+        break;
+      }
+    }
+    const chunks = s.split(" / ").map((c) => c.trim()).filter(Boolean);
+    const tokens = [];
+    for (const chunk of chunks) {
+      const parts = chunk.split(", ").map((sp) => sp.trim()).filter(Boolean);
+      let lastRoute = null;
+      for (const part of parts) {
+        const mRoute = part.match(/^Route\s+(\d+)$/i);
+        const mNum = part.match(/^(\d+)$/);
+        if (mRoute) {
+          lastRoute = parseInt(mRoute[1], 10);
+          tokens.push(`Route ${lastRoute}`);
+        } else if (mNum && lastRoute !== null) {
+          lastRoute = parseInt(mNum[1], 10);
+          tokens.push(`Route ${lastRoute}`);
+        } else if (part.toLowerCase().startsWith("from professor birch in")) {
+          continue;
+        } else {
+          lastRoute = null;
+          tokens.push(part);
+        }
+      }
+    }
+    const res = [];
+    const seen = new Set();
+    for (const t of tokens) {
+      if (!seen.has(t)) {
+        seen.add(t);
+        res.push(t);
+      }
+    }
+    return res;
+  }
+
+  function findPokemonForLocation(locName) {
+    if (!locName) return [];
+    const target = locName.trim().toLowerCase();
+    const isRoute = /^route\s+\d+$/i.test(target);
+    return pokemon.filter((p) => {
+      const tokens = extractLocations(p).map((t) => t.toLowerCase());
+      if (tokens.includes(target)) return true;
+      if (isRoute) return false;
+      let raw = p.Location || "";
+      for (const g of GAMES) {
+        if (raw.startsWith(g + ": ")) {
+          raw = raw.slice(g.length + 2);
+          break;
+        }
+      }
+      return raw.toLowerCase().includes(target);
+    });
   }
 
   // ---- Grid & Info Panel ------------------------------------------------
@@ -303,23 +373,77 @@
       lg.textContent = " · " + (loc.game.length === 1 ? "Pokémon " : "") + loc.game;
       locSec.appendChild(lg);
     }
-    const whereCell = (td, text) => {
+    const renderLocationField = (td) => {
       const box = document.createElement("div");
       box.className = "where-scroll";
-      const span = document.createElement("span");
-      span.textContent = text;
-      box.appendChild(span);
+      const locTokens = extractLocations(p);
+
+      if (loc.unobtainable) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "loc-tag unob";
+        btn.textContent = loc.where;
+        btn.title = "Click to view Unobtainable Pokémon";
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openLocationModal("Unobtainable", p);
+        });
+        box.appendChild(btn);
+        td.replaceChildren(box);
+        td.title = "Click to view Unobtainable Pokémon";
+        td.addEventListener("click", () => openLocationModal("Unobtainable", p));
+        return;
+      }
+
+      if (!locTokens.length) {
+        const span = document.createElement("span");
+        span.textContent = loc.where || "Unknown";
+        box.appendChild(span);
+        td.replaceChildren(box);
+        return;
+      }
+
+      const whereLower = (loc.where || "").toLowerCase();
+      if (whereLower.startsWith("from professor birch in")) {
+        const pfx = document.createElement("span");
+        pfx.className = "loc-prefix";
+        pfx.textContent = "From Professor Birch in: ";
+        box.appendChild(pfx);
+      }
+
+      locTokens.forEach((tok) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "loc-tag";
+        btn.textContent = tok;
+        btn.title = `Click to view Pokémon in ${tok}`;
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openLocationModal(tok, p);
+        });
+        box.appendChild(btn);
+      });
+
       td.replaceChildren(box);
+      td.title = `Click to view Pokémon in ${locTokens[0]}`;
+      td.addEventListener("click", () => openLocationModal(locTokens[0], p));
     };
+
     if (loc.unobtainable) {
       const td = lt.insertRow().insertCell();
       td.colSpan = 2; td.className = "unob";
-      whereCell(td, loc.where);
+      renderLocationField(td);
     } else {
       kvRow(lt, "Game", "Pokémon " + loc.game).className = "game-row";
       const wr = kvRow(lt, "Where", "");
       wr.className = "where-row";
-      whereCell(wr.cells[1], compactRoutes(loc.where));
+      wr.cells[0].style.cursor = "pointer";
+      wr.cells[0].title = "Click to view location";
+      wr.cells[0].addEventListener("click", () => {
+        const tokens = extractLocations(p);
+        if (tokens.length) openLocationModal(tokens[0], p);
+      });
+      renderLocationField(wr.cells[1]);
       if (loc.game !== "Alpha Sapphire") {
         kvRow(lt, "Note", "Not available in Alpha Sapphire").className = "note-row";
       }
@@ -553,6 +677,142 @@
   function closeSyncModal() {
     syncModal.classList.add("hidden");
   }
+
+  // ---- Location Modal ---------------------------------------------------
+  function openLocationModal(locName, sourcePokemon) {
+    if (!locName) return;
+    locModalTitle.textContent = locName;
+    locModalTitle.title = locName;
+
+    const source = sourcePokemon || selected || infoFor;
+    const allTokens = source ? extractLocations(source) : [];
+
+    // Render tabs if source has multiple locations
+    if (allTokens.length > 1) {
+      locModalTabs.replaceChildren();
+      allTokens.forEach((tok) => {
+        const tabBtn = document.createElement("button");
+        tabBtn.type = "button";
+        tabBtn.className = "loc-tab-btn" + (tok.toLowerCase() === locName.toLowerCase() ? " active" : "");
+        tabBtn.textContent = tok;
+        tabBtn.addEventListener("click", () => openLocationModal(tok, source));
+        locModalTabs.appendChild(tabBtn);
+      });
+      locModalTabs.classList.remove("hidden");
+    } else {
+      locModalTabs.replaceChildren();
+      locModalTabs.classList.add("hidden");
+    }
+
+    const matches = findPokemonForLocation(locName);
+
+    const updateSubtitle = () => {
+      const caughtCount = matches.filter(isCaught).length;
+      locModalSubtitle.textContent = `${matches.length} Pokémon · ${caughtCount} caught`;
+    };
+    updateSubtitle();
+
+    locModalList.replaceChildren();
+
+    if (!matches.length) {
+      const empty = document.createElement("div");
+      empty.className = "loc-item-empty";
+      empty.textContent = "No Pokémon found for this location.";
+      locModalList.appendChild(empty);
+    } else {
+      matches.forEach((p) => {
+        const item = document.createElement("div");
+        item.className = "loc-item" + (source && p.Ndex === source.Ndex ? " current" : "");
+        item.tabIndex = 0;
+        item.setAttribute("role", "button");
+        item.setAttribute("aria-label", `Reveal ${p.Pokemon} #${p.Ndex}`);
+
+        const left = document.createElement("div");
+        left.className = "loc-item-left";
+
+        const img = document.createElement("img");
+        img.className = "loc-item-sprite";
+        img.src = `icons/${p.Ndex}.png`;
+        img.alt = "";
+        img.loading = "lazy";
+
+        const dex = document.createElement("span");
+        dex.className = "loc-item-dex";
+        dex.textContent = `#${p.Ndex}`;
+
+        const name = document.createElement("span");
+        name.className = "loc-item-name";
+        name.textContent = p.Pokemon;
+
+        left.append(img, dex, name);
+
+        const badge = document.createElement("button");
+        badge.type = "button";
+        const c = isCaught(p);
+        badge.className = "loc-item-badge" + (c ? " caught" : "");
+        badge.textContent = c ? "● Caught" : "○ Not caught";
+        badge.setAttribute("aria-label", `${c ? "Mark uncaught" : "Mark caught"}: ${p.Pokemon}`);
+        badge.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleCaught(p);
+          const nowCaught = isCaught(p);
+          badge.className = "loc-item-badge" + (nowCaught ? " caught" : "");
+          badge.textContent = nowCaught ? "● Caught" : "○ Not caught";
+          badge.setAttribute("aria-label", `${nowCaught ? "Mark uncaught" : "Mark caught"}: ${p.Pokemon}`);
+          updateSubtitle();
+        });
+
+        item.append(left, badge);
+
+        item.addEventListener("click", () => revealPokemon(p));
+        item.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            revealPokemon(p);
+          }
+        });
+
+        locModalList.appendChild(item);
+      });
+    }
+
+    locationModal.classList.remove("hidden");
+  }
+
+  function closeLocationModal() {
+    locationModal.classList.add("hidden");
+  }
+
+  function revealPokemon(p) {
+    const idx = pokemon.indexOf(p);
+    if (idx !== -1) {
+      const boxIdx = Math.floor(idx / PER_BOX);
+      goTo(boxIdx);
+      showInfo(p);
+      const activeCell = grid.querySelector(`.cell[data-ndex="${p.Ndex}"]`);
+      if (activeCell) {
+        activeCell.classList.add("selected");
+        activeCell.focus({ preventScroll: true });
+      }
+    }
+    closeLocationModal();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  closeLocModalBtn.addEventListener("click", closeLocationModal);
+  locationModal.addEventListener("click", (e) => {
+    if (e.target === locationModal) closeLocationModal();
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (!locationModal.classList.contains("hidden")) {
+        closeLocationModal();
+      } else if (!syncModal.classList.contains("hidden")) {
+        closeSyncModal();
+      }
+    }
+  });
 
   syncBtn.addEventListener("click", openSyncModal);
   closeModalBtn.addEventListener("click", closeSyncModal);
