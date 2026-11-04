@@ -247,6 +247,18 @@ h1 {
   cursor: default;
 }
 
+#info .badge.readonly:hover {
+  background: #eef4f1;
+  border-color: #b9c9c3;
+  color: var(--muted);
+}
+
+#info .badge.caught.readonly:hover {
+  background: var(--caught);
+  border-color: var(--caught);
+  color: #fff;
+}
+
 #info .body {
   display: grid;
   grid-template-columns: 1.25fr 1fr;
@@ -1339,6 +1351,21 @@ h1 {
 .loc-item-badge.caught:hover {
   background: #2ea855;
   border-color: #2ea855;
+}
+
+.loc-item-badge.readonly {
+  cursor: default;
+}
+
+.loc-item-badge.readonly:hover {
+  border-color: #4a635d;
+  color: #9fb8b0;
+}
+
+.loc-item-badge.caught.readonly:hover {
+  background: var(--caught);
+  border-color: var(--caught);
+  color: #fff;
 }
 
 .loc-item-empty {

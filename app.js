@@ -33,6 +33,8 @@
   const searchInput = $("searchInput");
   const searchClearBtn = $("searchClearBtn");
   const searchResults = $("searchResults");
+  const editModeBtn = $("editModeBtn");
+  const editModeText = $("editModeText");
 
   let pokemon = [];
   let caughtSet = new Set();
@@ -43,6 +45,9 @@
   const touchMode = window.matchMedia("(hover: none)").matches;
 
   let syncMode = "offline"; // "local" | "github" | "offline"
+  let editMode = localStorage.getItem("gen6_edit_mode") === "editing";
+  const isLoggedIn = () => syncMode === "local" || syncMode === "github";
+  const canEdit = () => isLoggedIn() && editMode;
   let ghSha = null;
   let saveChain = Promise.resolve();
 
@@ -59,6 +64,39 @@
     syncDot.className = "sync-dot " + (status || "offline");
     syncText.textContent = text || "Sync";
     syncBtn.title = tooltip || text || "";
+  }
+
+  function updateEditModeUI() {
+    if (!editModeBtn) return;
+    if (!isLoggedIn()) {
+      editModeBtn.classList.add("hidden");
+    } else {
+      editModeBtn.classList.remove("hidden");
+      if (editMode) {
+        editModeBtn.classList.add("active");
+        if (editModeText) editModeText.textContent = "Editing";
+        editModeBtn.title = "Editing mode active. Click to switch to Read Only.";
+      } else {
+        editModeBtn.classList.remove("active");
+        if (editModeText) editModeText.textContent = "Read Only";
+        editModeBtn.title = "Read Only mode active. Click to switch to Editing.";
+      }
+    }
+    if (infoFor) updateBadge();
+  }
+
+  function toggleEditMode() {
+    if (!isLoggedIn()) return;
+    editMode = !editMode;
+    try {
+      localStorage.setItem("gen6_edit_mode", editMode ? "editing" : "readonly");
+    } catch (e) {}
+    updateEditModeUI();
+    showToast(editMode ? "Editing mode enabled." : "Read Only mode enabled.");
+  }
+
+  if (editModeBtn) {
+    editModeBtn.addEventListener("click", toggleEditMode);
   }
 
   function parseLocation(text) {
@@ -211,7 +249,11 @@
       cell.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          toggleCaught(p);
+          if (canEdit()) {
+            toggleCaught(p);
+          } else {
+            showInfo(p);
+          }
         }
       });
       grid.appendChild(cell);
@@ -227,6 +269,10 @@
   }
 
   function onTap(p) {
+    if (!canEdit()) {
+      showInfo(p);
+      return;
+    }
     if (touchMode && selected !== p) {
       showInfo(p);
       return;
@@ -353,7 +399,13 @@
     const badge = document.createElement("button");
     badge.type = "button";
     badge.id = "badge";
-    badge.addEventListener("click", () => toggleCaught(p));
+    badge.addEventListener("click", () => {
+      if (!canEdit()) {
+        showToast("Read Only mode. Toggle Editing at top to make changes.");
+        return;
+      }
+      toggleCaught(p);
+    });
     head.append(img, names, badge);
     info.appendChild(head);
     updateBadge();
@@ -485,8 +537,11 @@
     const badge = $("badge");
     if (!badge || !infoFor) return;
     const c = isCaught(infoFor);
-    badge.className = "badge" + (c ? " caught" : "");
+    badge.className = "badge" + (c ? " caught" : "") + (canEdit() ? "" : " readonly");
     badge.textContent = c ? "● Caught" : "○ Not caught";
+    badge.title = canEdit()
+      ? (c ? "Click to mark as not caught" : "Click to mark as caught")
+      : "Read Only mode. Toggle Editing at top to make changes.";
   }
 
   function refreshCaughtUI(p) {
@@ -503,6 +558,10 @@
 
   // ---- Toggling & Syncing -----------------------------------------------
   function toggleCaught(p) {
+    if (!canEdit()) {
+      showToast("Read Only mode. Toggle Editing at top to make changes.");
+      return;
+    }
     const id = parseInt(p.Ndex, 10);
     const desired = !caughtSet.has(id);
     if (desired) {
@@ -751,11 +810,16 @@
         const badge = document.createElement("button");
         badge.type = "button";
         const c = isCaught(p);
-        badge.className = "loc-item-badge" + (c ? " caught" : "");
+        badge.className = "loc-item-badge" + (c ? " caught" : "") + (canEdit() ? "" : " readonly");
         badge.textContent = c ? "● Caught" : "○ Not caught";
+        badge.title = canEdit() ? `${c ? "Mark uncaught" : "Mark caught"}: ${p.Pokemon}` : "Read Only mode";
         badge.setAttribute("aria-label", `${c ? "Mark uncaught" : "Mark caught"}: ${p.Pokemon}`);
         badge.addEventListener("click", (e) => {
           e.stopPropagation();
+          if (!canEdit()) {
+            showToast("Read Only mode. Toggle Editing at top to make changes.");
+            return;
+          }
           toggleCaught(p);
           const nowCaught = isCaught(p);
           badge.className = "loc-item-badge" + (nowCaught ? " caught" : "");
@@ -833,6 +897,7 @@
     if (syncMode === "github") {
       syncMode = "offline";
       setSyncStatus("offline", "Sync", "Click to configure GitHub sync");
+      updateEditModeUI();
     }
     showToast("GitHub sync settings cleared.");
     closeSyncModal();
@@ -875,6 +940,7 @@
 
       syncMode = "github";
       setSyncStatus("synced", "GitHub Synced", `Connected to ${repo} (${branch})`);
+      updateEditModeUI();
       closeSyncModal();
       showToast("Connected to GitHub!");
 
@@ -1303,6 +1369,7 @@
               }
             }
             setSyncStatus("synced", "GitHub Synced", `Connected to ${ghRepo} (${ghBranch})`);
+            updateEditModeUI();
             if (merged) {
               localStorage.setItem("gen6_caught", JSON.stringify(Array.from(caughtSet)));
               renderGrid();
@@ -1318,6 +1385,7 @@
       }
     }
 
+    updateEditModeUI();
     renderGrid();
 
     const savedNdex = localStorage.getItem("gen6ndex");
