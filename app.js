@@ -423,12 +423,6 @@
       lg.className = "loc-game";
       lg.textContent = " · " + (loc.game.length === 1 ? "Pokémon " : "") + loc.game;
       locSec.appendChild(lg);
-      if (loc.game !== "Alpha Sapphire") {
-        const lNote = document.createElement("span");
-        lNote.className = "loc-note";
-        lNote.textContent = " (Not in AS)";
-        locSec.appendChild(lNote);
-      }
     }
 
     const whereBox = document.createElement("div");

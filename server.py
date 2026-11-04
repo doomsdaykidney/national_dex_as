@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import socket
 import subprocess
+import sys
 import threading
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -146,11 +147,26 @@ class BoxRequestHandler(SimpleHTTPRequestHandler):
         self._send_json({"ok": True, "caught": sorted_caught})
 
     def log_message(self, format: str, *args) -> None:
-        pass
+        if self.path.startswith("/icons/"):
+            return
+        sys.stderr.write(f"[{self.log_date_time_string()}] {self.address_string()} {format % args}\n")
+        sys.stderr.flush()
+
+
+class DualStackServer(ThreadingHTTPServer):
+    allow_reuse_address = True
+
+    def server_bind(self):
+        if self.address_family == socket.AF_INET6:
+            try:
+                self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            except (AttributeError, OSError):
+                pass
+        super().server_bind()
 
 
 def lan_ip() -> str | None:
-    """Best-effort Wi-Fi/Ethernet address of this Mac."""
+    """Best-effort Wi-Fi/Ethernet address of this Mac (excluding loopback and VPNs)."""
     for i in range(0, 6):
         try:
             out = subprocess.run(
@@ -159,16 +175,30 @@ def lan_ip() -> str | None:
                 text=True,
                 timeout=2,
             ).stdout.strip()
+            if out:
+                return out
         except (OSError, subprocess.SubprocessError):
-            break
-        if out:
-            return out
+            continue
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.connect(("10.255.255.255", 1))
-            return s.getsockname()[0]
+            ip = s.getsockname()[0]
+            if not ip.startswith("127.") and not ip.startswith("10.14."):
+                return ip
     except OSError:
-        return None
+        pass
+    return None
+
+
+def has_active_vpn() -> bool:
+    try:
+        out = subprocess.run(["ifconfig"], capture_output=True, text=True, timeout=2).stdout
+        for line in out.splitlines():
+            if line.strip().startswith("inet 10.") and "-->" in line:
+                return True
+    except Exception:
+        pass
+    return False
 
 
 def main() -> None:
@@ -182,18 +212,33 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=PORT)
     args = parser.parse_args()
 
-    host = "0.0.0.0" if args.lan else "127.0.0.1"
-    server = ThreadingHTTPServer((host, args.port), BoxRequestHandler)
+    if args.lan:
+        try:
+            DualStackServer.address_family = socket.AF_INET6
+            server = DualStackServer(("::", args.port), BoxRequestHandler)
+        except OSError:
+            DualStackServer.address_family = socket.AF_INET
+            server = DualStackServer(("0.0.0.0", args.port), BoxRequestHandler)
+    else:
+        DualStackServer.address_family = socket.AF_INET
+        server = DualStackServer(("127.0.0.1", args.port), BoxRequestHandler)
 
-    print(f"Serving on this computer:  http://127.0.0.1:{args.port}", flush=True)
+    print(f"Serving locally:           http://127.0.0.1:{args.port}", flush=True)
     if args.lan:
         ip = lan_ip()
         name = socket.gethostname()
         if name and not name.endswith(".local"):
             name += ".local"
         if ip:
-            print(f"On your iPhone (same Wi-Fi): http://{ip}:{args.port}", flush=True)
-        print(f"  or (name-based, survives IP changes): http://{name}:{args.port}", flush=True)
+            print(f"On your phone (Wi-Fi IP):  http://{ip}:{args.port}", flush=True)
+        print(f"On your phone (Hostname):  http://{name}:{args.port}", flush=True)
+        if has_active_vpn():
+            print(
+                "\n⚠️  Active VPN detected: If your phone cannot connect, either:\n"
+                "   1. Enable 'Allow LAN / Local Network traffic' in your VPN app settings, or\n"
+                "   2. Temporarily pause/disconnect the VPN while using LAN mode.",
+                flush=True,
+            )
     server.serve_forever()
 
 
