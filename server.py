@@ -16,7 +16,7 @@ PORT = 8765
 MAX_BODY_BYTES = 64 * 1024
 
 _caught_lock = threading.Lock()
-_ICON_RE = re.compile(r"^/icons/\d{3}\.png$")
+_ICON_RE = re.compile(r"^/icons/(\d{3}|pokeball)\.png$")
 _ALLOWED_STATIC = {
     "/",
     "/index.html",
@@ -25,6 +25,7 @@ _ALLOWED_STATIC = {
     "/pokemon.json",
     "/caught.json",
     "/favicon.ico",
+    "/icons/pokeball.png",
 }
 
 

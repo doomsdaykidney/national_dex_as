@@ -529,7 +529,7 @@ table.kv th {
 .slider-track-wrap {
   position: relative;
   flex: 1;
-  height: 28px;
+  height: 32px;
   display: flex;
   align-items: center;
 }
@@ -561,8 +561,8 @@ table.kv th {
 .slider-stops {
   position: absolute;
   top: 50%;
-  left: 11px;
-  right: 11px;
+  left: 15px;
+  right: 15px;
   height: 4px;
   transform: translateY(-50%);
   pointer-events: none;
@@ -587,7 +587,7 @@ table.kv th {
   position: relative;
   z-index: 2;
   width: 100%;
-  height: 28px;
+  height: 32px;
   margin: 0;
   padding: 0;
   -webkit-appearance: none;
@@ -615,48 +615,68 @@ table.kv th {
 #boxSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #5ecab2 0%, #3b8f7c 100%);
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(43, 107, 92, 0.6);
+  width: 30px;
+  height: 30px;
+  background-color: transparent;
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeBAMAAADJHrORAAAAA3NCSVQFBQUYJt5DAAAAIVBMVEX///8xMTH/lDqcSjr/1jr////eWjpKUlKlpcV7e4TezvdcMgHRAAAAAXRSTlMAQObYZgAAAH5JREFUGNNjYKALEBQUROEqKSkhCTACuUpqAnC+kAtIIBEurRLqBOSnCeDgCymB1aclwvlg83DyhcH8tDRDKF/cSL0cyE0uhPHLKyLK0szLYXzG6aWh5eXllXD7l86IAHJXwB0sFTlz1apVjQj/dAG5HQJI/u3o6BDEEx60AwCJgyJdBXcpkgAAAABJRU5ErkJggg==");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   cursor: grab;
-  margin-top: -7px;
-  transition: transform 0.1s ease, box-shadow 0.15s;
+  margin-top: -11px;
+  transition: transform 0.1s ease, filter 0.15s;
+}
+
+#boxSlider:hover::-webkit-slider-thumb {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)) brightness(1.1);
 }
 
 #boxSlider:active::-webkit-slider-thumb {
   cursor: grabbing;
-  transform: scale(1.12);
-  background: linear-gradient(180deg, #72d9c2 0%, #46a691 100%);
-  box-shadow: 0 0 10px rgba(94, 202, 178, 0.6), 0 2px 6px rgba(0, 0, 0, 0.45);
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
 }
 
 #boxSlider::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #5ecab2 0%, #3b8f7c 100%);
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(43, 107, 92, 0.6);
+  width: 30px;
+  height: 30px;
+  background-color: transparent;
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeBAMAAADJHrORAAAAA3NCSVQFBQUYJt5DAAAAIVBMVEX///8xMTH/lDqcSjr/1jr////eWjpKUlKlpcV7e4TezvdcMgHRAAAAAXRSTlMAQObYZgAAAH5JREFUGNNjYKALEBQUROEqKSkhCTACuUpqAnC+kAtIIBEurRLqBOSnCeDgCymB1aclwvlg83DyhcH8tDRDKF/cSL0cyE0uhPHLKyLK0szLYXzG6aWh5eXllXD7l86IAHJXwB0sFTlz1apVjQj/dAG5HQJI/u3o6BDEEx60AwCJgyJdBXcpkgAAAABJRU5ErkJggg==");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   cursor: grab;
-  transition: transform 0.1s ease, box-shadow 0.15s;
+  transition: transform 0.1s ease, filter 0.15s;
+}
+
+#boxSlider:hover::-moz-range-thumb {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6)) brightness(1.1);
 }
 
 #boxSlider:active::-moz-range-thumb {
   cursor: grabbing;
-  transform: scale(1.12);
-  background: linear-gradient(180deg, #72d9c2 0%, #46a691 100%);
-  box-shadow: 0 0 10px rgba(94, 202, 178, 0.6), 0 2px 6px rgba(0, 0, 0, 0.45);
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
 }
 
 #boxSlider:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px rgba(94, 202, 178, 0.5), 0 2px 6px rgba(0, 0, 0, 0.45);
+  filter: drop-shadow(0 0 0 2px #5ecab2) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 
 #boxSlider:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 3px rgba(94, 202, 178, 0.5), 0 2px 6px rgba(0, 0, 0, 0.45);
+  filter: drop-shadow(0 0 0 2px #5ecab2) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 
 #toast {
@@ -1012,10 +1032,10 @@ table.kv th {
   }
 
   .slider-track-wrap {
-    height: 26px;
+    height: 30px;
   }
 
   #boxSlider {
-    height: 26px;
+    height: 30px;
   }
 }

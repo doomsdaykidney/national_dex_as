@@ -208,7 +208,7 @@
     boxSlider.setAttribute("aria-valuetext", `Box ${targetVal}`);
 
     if (sliderFill && boxCount > 1) {
-      sliderFill.style.width = `calc(11px + (${current} / ${boxCount - 1}) * (100% - 22px))`;
+      sliderFill.style.width = `calc(15px + (${current} / ${boxCount - 1}) * (100% - 30px))`;
     }
 
     if (sliderStops) {
