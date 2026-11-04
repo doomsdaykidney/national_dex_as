@@ -265,16 +265,27 @@ h1 {
 
 table.kv {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #cfe0d9;
+  border-radius: 8px;
+  overflow: hidden;
   font-size: 13px;
+  background: #fff;
 }
 
 table.kv td,
 table.kv th {
-  border: 1px solid #cfe0d9;
   padding: 4px 6px;
   text-align: left;
   vertical-align: top;
+  border: none;
+  border-bottom: 1px solid #cfe0d9;
+}
+
+table.kv tr:last-child td,
+table.kv tr:last-child th {
+  border-bottom: none;
 }
 
 table.kv th {
@@ -282,12 +293,16 @@ table.kv th {
   width: 30%;
   font-weight: 600;
   white-space: nowrap;
+  border-right: 1px solid #cfe0d9;
 }
 
 /* Stats grid: one row per stat on desktop, compact 3-column tiles on phones */
 .stats {
   border: 1px solid #cfe0d9;
+  border-radius: 8px;
+  overflow: hidden;
   font-size: 13px;
+  background: #fff;
 }
 
 .stat {
@@ -925,12 +940,25 @@ table.kv th {
     /* game is in the heading; stats are self-explanatory */
   }
 
+  table.kv {
+    border: 1px solid #cfe0d9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+
   .where-row th {
     display: none;
   }
 
   .where-row td {
     padding: 0 8px;
+    border: none;
+  }
+
+  table.kv td.unob {
+    padding: 6px 8px;
+    border: none;
   }
 
   /* Fixed height + scroll: a long route list can never resize the panel and shift the box
