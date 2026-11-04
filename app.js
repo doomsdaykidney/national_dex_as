@@ -207,6 +207,68 @@
     });
   }
 
+  // ---- Image Pre-caching ------------------------------------------------
+  const imageCache = new Map();
+
+  function preloadPokemonIcon(ndex) {
+    if (!ndex || imageCache.has(ndex)) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = `icons/${ndex}.png`;
+    if ("decode" in img) {
+      img.decode().catch(() => {});
+    }
+    imageCache.set(ndex, img);
+  }
+
+  function preloadBox(boxIndex) {
+    if (boxIndex < 0 || boxIndex >= boxCount) return;
+    const start = boxIndex * PER_BOX;
+    for (let i = 0; i < PER_BOX; i++) {
+      const p = pokemon[start + i];
+      if (p) preloadPokemonIcon(p.Ndex);
+    }
+  }
+
+  function startBackgroundPreload() {
+    const pb = new Image();
+    pb.src = "icons/pokeball.png";
+    if ("decode" in pb) pb.decode().catch(() => {});
+
+    // 1. Immediately preload current box and neighbors
+    preloadBox(current);
+    preloadBox(current + 1);
+    preloadBox(current - 1);
+    preloadBox(current + 2);
+    preloadBox(current - 2);
+
+    // 2. Queue remaining boxes outward by distance
+    const remaining = [];
+    for (let dist = 3; dist < boxCount; dist++) {
+      if (current + dist < boxCount) remaining.push(current + dist);
+      if (current - dist >= 0) remaining.push(current - dist);
+    }
+
+    let idx = 0;
+    function processBatch() {
+      if (idx >= remaining.length) return;
+      preloadBox(remaining[idx++]);
+      if (idx < remaining.length) {
+        if ("requestIdleCallback" in window) {
+          window.requestIdleCallback(processBatch, { timeout: 150 });
+        } else {
+          setTimeout(processBatch, 40);
+        }
+      }
+    }
+
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(processBatch, { timeout: 150 });
+    } else {
+      setTimeout(processBatch, 40);
+    }
+  }
+
   // ---- Grid & Info Panel ------------------------------------------------
   function renderGrid() {
     grid.replaceChildren();
@@ -229,7 +291,7 @@
       const img = document.createElement("img");
       img.src = `icons/${p.Ndex}.png`;
       img.alt = p.Pokemon;
-      img.loading = "lazy";
+      img.decoding = "async";
       cell.appendChild(img);
 
       const ball = document.createElement("span");
@@ -356,6 +418,9 @@
   function goTo(b) {
     current = Math.min(Math.max(0, b), boxCount - 1);
     localStorage.setItem("gen6box", String(current));
+    preloadBox(current);
+    preloadBox(current + 1);
+    preloadBox(current - 1);
     renderGrid();
   }
 
@@ -1385,6 +1450,8 @@
     const savedNdex = localStorage.getItem("gen6ndex");
     const initial = (savedNdex && pokemon.find((p) => p.Ndex === savedNdex)) || pokemon[current * PER_BOX];
     if (initial) showInfo(initial);
+
+    startBackgroundPreload();
   }
 
   init();
