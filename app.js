@@ -378,6 +378,16 @@
     });
   }
 
+  function normalizeRepo(input) {
+    if (!input) return "";
+    let r = input.trim();
+    r = r.replace(/^https?:\/\/github\.com\//, "");
+    r = r.replace(/^git@github\.com:/, "");
+    r = r.replace(/\.git$/, "");
+    r = r.replace(/^\/+|\/+$/g, "");
+    return r;
+  }
+
   // ---- GitHub API Integration ------------------------------------------
   async function fetchGitHubCaught(repo, branch, token) {
     const url = `https://api.github.com/repos/${repo}/contents/caught.json?ref=${encodeURIComponent(branch || "main")}`;
@@ -514,12 +524,17 @@
 
   syncForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const repo = ghRepoInput.value.trim();
+    const repo = normalizeRepo(ghRepoInput.value);
     const branch = ghBranchInput.value.trim() || "main";
     const token = ghTokenInput.value.trim();
 
     if (!repo || !token) {
       showToast("Please enter both repository and token.");
+      return;
+    }
+
+    if (!repo.includes("/")) {
+      showToast("Repository must be in 'owner/repo' format (e.g. doomsdaykidney/national_dex_as).");
       return;
     }
 
