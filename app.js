@@ -142,9 +142,11 @@
     }).join(" / ");
   }
 
-  function extractLocations(p) {
-    if (!p || !p.Location) return [];
-    let s = p.Location.trim();
+  const sharedLocationBaseNames = new Set();
+
+  function extractRawBaseLocations(locText) {
+    if (!locText) return [];
+    let s = locText.trim();
     if (s.startsWith("Unobtainable")) {
       return ["Unobtainable"];
     }
@@ -187,22 +189,46 @@
     return res;
   }
 
+  function initSharedLocations() {
+    sharedLocationBaseNames.clear();
+    const baseLocToGames = new Map();
+    for (const p of pokemon) {
+      if (!p || !p.Location || p.Location.startsWith("Unobtainable")) continue;
+      const game = parseLocation(p.Location).game || "Alpha Sapphire";
+      const baseTokens = extractRawBaseLocations(p.Location);
+      for (const tok of baseTokens) {
+        if (!baseLocToGames.has(tok)) {
+          baseLocToGames.set(tok, new Set());
+        }
+        baseLocToGames.get(tok).add(game);
+      }
+    }
+    for (const [locName, gameSet] of baseLocToGames.entries()) {
+      if (gameSet.size > 1) {
+        sharedLocationBaseNames.add(locName);
+      }
+    }
+  }
+
+  function extractLocations(p) {
+    if (!p || !p.Location) return [];
+    if (p.Location.startsWith("Unobtainable")) return ["Unobtainable"];
+    const game = parseLocation(p.Location).game || "Alpha Sapphire";
+    const rawTokens = extractRawBaseLocations(p.Location);
+    return rawTokens.map((tok) => {
+      if (sharedLocationBaseNames.has(tok)) {
+        return `${tok} (${game})`;
+      }
+      return tok;
+    });
+  }
+
   function findPokemonForLocation(locName) {
     if (!locName) return [];
     const target = locName.trim().toLowerCase();
-    const isRoute = /^route\s+\d+$/i.test(target);
     return pokemon.filter((p) => {
       const tokens = extractLocations(p).map((t) => t.toLowerCase());
-      if (tokens.includes(target)) return true;
-      if (isRoute) return false;
-      let raw = p.Location || "";
-      for (const g of GAMES) {
-        if (raw.startsWith(g + ": ")) {
-          raw = raw.slice(g.length + 2);
-          break;
-        }
-      }
-      return raw.toLowerCase().includes(target);
+      return tokens.includes(target);
     });
   }
 
@@ -1063,9 +1089,12 @@
       }
     }
     allLocations = Array.from(locSet).sort((a, b) => {
-      const ra = a.match(/^Route\s+(\d+)$/i);
-      const rb = b.match(/^Route\s+(\d+)$/i);
-      if (ra && rb) return parseInt(ra[1], 10) - parseInt(rb[1], 10);
+      const ra = a.match(/^Route\s+(\d+)/i);
+      const rb = b.match(/^Route\s+(\d+)/i);
+      if (ra && rb) {
+        const diff = parseInt(ra[1], 10) - parseInt(rb[1], 10);
+        if (diff !== 0) return diff;
+      }
       return a.localeCompare(b);
     });
   }
@@ -1112,27 +1141,29 @@
 
   function getMatchingLocations(query) {
     const lowerQ = query.toLowerCase();
+    const cleanQ = lowerQ.replace(/[\(\)\-]/g, " ").replace(/\s+/g, " ").trim();
     const routeMatch = lowerQ.match(/^(?:route\s*|r)?\s*(\d+)$/i);
     const routeNum = routeMatch ? parseInt(routeMatch[1], 10) : null;
 
     const scored = [];
     for (const loc of allLocations) {
       const lowerLoc = loc.toLowerCase();
+      const cleanLoc = lowerLoc.replace(/[\(\)\-]/g, " ").replace(/\s+/g, " ").trim();
       let score = 0;
 
       if (routeNum !== null) {
-        const m = lowerLoc.match(/^route\s+(\d+)$/i);
+        const m = lowerLoc.match(/^route\s+(\d+)/i);
         if (m && parseInt(m[1], 10) === routeNum) {
           score = 100;
         }
       }
 
       if (!score) {
-        if (lowerLoc === lowerQ) {
+        if (lowerLoc === lowerQ || cleanLoc === cleanQ) {
           score = 95;
-        } else if (lowerLoc.startsWith(lowerQ)) {
+        } else if (lowerLoc.startsWith(lowerQ) || cleanLoc.startsWith(cleanQ)) {
           score = 80;
-        } else if (lowerLoc.includes(lowerQ)) {
+        } else if (lowerLoc.includes(lowerQ) || cleanLoc.includes(cleanQ)) {
           score = 60;
         }
       }
@@ -1144,9 +1175,14 @@
 
     scored.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      const ra = a.loc.match(/^Route\s+(\d+)$/i);
-      const rb = b.loc.match(/^Route\s+(\d+)$/i);
-      if (ra && rb) return parseInt(ra[1], 10) - parseInt(rb[1], 10);
+      if (a.loc.includes("(Alpha Sapphire)") && !b.loc.includes("(Alpha Sapphire)")) return -1;
+      if (!a.loc.includes("(Alpha Sapphire)") && b.loc.includes("(Alpha Sapphire)")) return 1;
+      const ra = a.loc.match(/^Route\s+(\d+)/i);
+      const rb = b.loc.match(/^Route\s+(\d+)/i);
+      if (ra && rb) {
+        const diff = parseInt(ra[1], 10) - parseInt(rb[1], 10);
+        if (diff !== 0) return diff;
+      }
       return a.loc.localeCompare(b.loc);
     });
 
@@ -1348,6 +1384,7 @@
       boxCount = Math.ceil(pokemon.length / PER_BOX);
       current = Math.min(current, Math.max(0, boxCount - 1));
       setupBoxSlider();
+      initSharedLocations();
       buildLocationIndex();
     } catch (e) {
       const err = $("err");
