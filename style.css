@@ -1,0 +1,883 @@
+:root {
+  --bg: #1d2b3a;
+  --box-frame: #3b8f7c;
+  --box-frame-dark: #2b6b5c;
+  --box-inner: #d9f2e6;
+  --cell: #c4e8d6;
+  --cell-hover: #fff6b0;
+  --ink: #1f2d2a;
+  --muted: #5d7770;
+  --accent: #e8453c;
+  --caught: #2e9e4f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: #1d2b3a;
+  /* fill iOS Safari top/bottom bars & overscroll */
+  -webkit-text-size-adjust: 100%;
+  /* stop Safari inflating text */
+  /* No double-tap-to-zoom: it would swallow the "tap again to toggle" gesture. */
+  touch-action: manipulation;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* iOS: visible height, not the toolbar-hidden height */
+  background-color: #1d2b3a;
+  background-image: radial-gradient(circle at 50% 45%, #283c50 0%, var(--bg) 70%);
+  color: #eaf4f0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 12px 48px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---- Top header & GitHub Sync bar ---- */
+.topbar {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: 0.4px;
+}
+
+.topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edit-mode-btn,
+.icon-btn,
+.sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2b4157;
+  border: 1px solid #3c566f;
+  color: #eaf4f0;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.edit-mode-btn:hover,
+.icon-btn:hover,
+.sync-btn:hover {
+  background: #35506b;
+}
+
+.edit-mode-btn.active {
+  background: var(--box-frame);
+  border-color: var(--box-frame-dark);
+  color: #fff;
+}
+
+.icon-btn {
+  padding: 5px 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8aa29b;
+  flex-shrink: 0;
+}
+
+.sync-dot.synced {
+  background: #35c463;
+  box-shadow: 0 0 6px rgba(53, 196, 99, 0.6);
+}
+
+.sync-dot.saving {
+  background: #f2c230;
+}
+
+.sync-dot.error {
+  background: var(--accent);
+}
+
+.sub {
+  color: #9fb8b0;
+  font-size: 13px;
+  margin-bottom: 12px;
+  text-align: center;
+  line-height: 1.5;
+  max-width: 560px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 560px;
+}
+
+/* ---- Info panel (shows the hovered/selected Pokémon) ---- */
+#info {
+  background: #fdfefe;
+  color: var(--ink);
+  border: 4px solid var(--box-frame-dark);
+  border-radius: 14px;
+  padding: 12px 14px 14px;
+  margin-bottom: 14px;
+  min-height: 318px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+#info.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+#info .head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+#info .head img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#info .head .nm {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+#info .head .dex {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+#info .badge {
+  margin-left: auto;
+  padding: 5px 12px;
+  min-height: 36px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 2px solid #b9c9c3;
+  color: var(--muted);
+  background: #eef4f1;
+  white-space: nowrap;
+}
+
+#info .badge.caught {
+  border-color: var(--caught);
+  color: #fff;
+  background: var(--caught);
+}
+
+#info .badge.readonly {
+  cursor: default;
+}
+
+#info .body {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 14px;
+  align-items: start;
+}
+
+#info .sec {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+
+table.kv {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+table.kv td,
+table.kv th {
+  border: 1px solid #cfe0d9;
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+table.kv th {
+  background: #e7f3ee;
+  width: 30%;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Stats grid: one row per stat on desktop, compact 3-column tiles on phones */
+.stats {
+  border: 1px solid #cfe0d9;
+  font-size: 13px;
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: 58px 1fr 38px;
+  align-items: center;
+  border-top: 1px solid #cfe0d9;
+}
+
+.stat:first-child {
+  border-top: none;
+}
+
+.stat .lab {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  background: #e7f3ee;
+  padding: 4px 6px;
+  font-weight: 600;
+  border-right: 1px solid #cfe0d9;
+}
+
+.stat .barwrap {
+  padding: 0 6px;
+}
+
+.stat .val {
+  padding: 4px 6px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.stat.total {
+  grid-template-columns: 58px 1fr;
+}
+
+.stat.total .val {
+  text-align: left;
+  font-weight: 700;
+}
+
+#info .dex .tot {
+  display: none;
+  /* shown on phones, where the Total tile is dropped */
+}
+
+.loc-game {
+  display: none;
+  /* shown on phones, where the Game row is dropped */
+}
+
+.bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #e3ece8;
+  overflow: hidden;
+}
+
+.bar>span {
+  display: block;
+  height: 100%;
+}
+
+.unob {
+  color: #a33;
+  font-weight: 600;
+}
+
+/* Instruction text differs between mouse and touch devices */
+@media (hover: none) {
+  .hint-hover {
+    display: none;
+  }
+}
+
+@media (hover: hover) {
+  .hint-touch {
+    display: none;
+  }
+}
+
+/* ---- Box ---- */
+.box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--box-frame);
+  border: 4px solid var(--box-frame-dark);
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  padding: 8px 10px;
+  color: #fff;
+}
+
+.box-title {
+  text-align: center;
+  flex: 1;
+}
+
+.box-title .name {
+  font-weight: 700;
+  font-size: 18px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.box-title .range {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.nav-btn {
+  border: 2px solid var(--box-frame-dark);
+  background: #56b59f;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.nav-btn:hover {
+  background: #6ccdb6;
+}
+
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  background: var(--box-inner);
+  border: 4px solid var(--box-frame-dark);
+  border-top: 4px solid var(--box-frame-dark);
+  border-radius: 0 0 14px 14px;
+  padding: 12px;
+}
+
+.cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: var(--cell);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cell.empty {
+  background: rgba(0, 0, 0, 0.05);
+  cursor: default;
+}
+
+/* Not obtainable in Alpha Sapphire and not yet caught: muted tile + greyscale sprite. */
+.cell.not-as.uncaught {
+  background: #d3dcd8;
+}
+
+.cell img {
+  width: 80%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  transition: filter 0.15s;
+}
+
+.cell.not-as.uncaught img {
+  filter: grayscale(1) opacity(0.7);
+}
+
+/* Hover highlight is desktop-only so iOS Safari never leaves a sticky hover on a previously
+   tapped tile. Touch devices use the explicit .selected class instead. */
+@media (hover: hover) {
+
+  .cell:not(.empty):hover,
+  .cell:not(.empty):focus-visible {
+    background: var(--cell-hover);
+    border-color: #e0b800;
+    outline: none;
+  }
+
+  .cell.not-as.uncaught:hover img,
+  .cell.not-as.uncaught:focus-visible img {
+    filter: grayscale(0.6) opacity(0.9);
+  }
+}
+
+/* Tile selected by a tap on touch devices (tap once to inspect, again to toggle caught) */
+.cell:not(.empty).selected {
+  background: var(--cell-hover);
+  border-color: #e0b800;
+  outline: none;
+}
+
+.cell.not-as.uncaught.selected img {
+  filter: grayscale(0.6) opacity(0.9);
+}
+
+.cell .ball {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--accent) 0 46%, #222 46% 54%, #fff 54% 100%);
+  border: 1.5px solid #222;
+  display: none;
+}
+
+.cell.caught .ball {
+  display: block;
+}
+
+.cell .num {
+  position: absolute;
+  bottom: 2px;
+  left: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 14px;
+  max-width: 560px;
+}
+
+.tab {
+  min-width: 34px;
+  padding: 4px 6px;
+  font-size: 12px;
+  text-align: center;
+  background: #2b4157;
+  border: 1px solid #3c566f;
+  color: #cfe3dc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tab.current {
+  background: var(--box-frame);
+  color: #fff;
+  border-color: var(--box-frame-dark);
+}
+
+.tab.done {
+  border-color: var(--caught);
+}
+
+.total {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #cfe3dc;
+}
+
+#toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #a33;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: none;
+  z-index: 100;
+}
+
+#err {
+  margin-top: 30px;
+  color: #ffb4a8;
+  text-align: center;
+  max-width: 480px;
+  display: none;
+}
+
+/* ---- GitHub Sync Modal ---- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 20, 28, 0.75);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 200;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 420px;
+  background: #223446;
+  border: 2px solid var(--box-frame-dark);
+  border-radius: 14px;
+  padding: 18px 20px;
+  color: #eaf4f0;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #9fb8b0;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.modal-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #b4ccc4;
+  line-height: 1.45;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #cfe3dc;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #3c566f;
+  background: #172431;
+  color: #eaf4f0;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--box-frame);
+}
+
+.help-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #9fb8b0;
+  line-height: 1.35;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--box-frame);
+  border: 1px solid var(--box-frame-dark);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #47a38e;
+}
+
+.btn-secondary {
+  background: #2b4157;
+  border: 1px solid #3c566f;
+  color: #cfe3dc;
+}
+
+.btn-secondary:hover {
+  background: #35506b;
+}
+
+/* Phones. Tuned for iPhone 16 Pro Max in Safari: 440 CSS px wide (3x), ~800 px of
+   visible height. Target: info panel + the whole 6x5 box + all 25 box tabs visible
+   without scrolling, with sprites at an exact 5x pixel multiple (crisp at 3x). */
+@media (max-width: 520px) {
+  body {
+    padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  }
+
+  .topbar {
+    margin-bottom: 2px;
+  }
+
+  h1 {
+    font-size: 15.5px;
+  }
+
+  .edit-mode-btn,
+  .sync-btn {
+    padding: 4px 8px;
+    font-size: 11.5px;
+  }
+
+  .icon-btn {
+    padding: 4px 7px;
+    font-size: 13px;
+  }
+
+  .sub {
+    font-size: 11px;
+    line-height: 1.25;
+    margin-bottom: 5px;
+  }
+
+  #info {
+    height: 234px;
+    min-height: 0;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border-width: 3px;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  #info .head {
+    margin-bottom: 5px;
+    gap: 10px;
+  }
+
+  #info .head img {
+    width: 48px;
+    height: 48px;
+  }
+
+  #info .head .nm {
+    font-size: 17px;
+  }
+
+  #info .dex .tot {
+    display: inline;
+  }
+
+  #info .badge {
+    min-height: 38px;
+    padding: 5px 13px;
+    font-size: 13px;
+  }
+
+  #info .body {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .loc-game {
+    display: inline;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .game-row,
+  .note-row,
+  .stat-sec {
+    display: none;
+    /* game is in the heading; stats are self-explanatory */
+  }
+
+  .where-row th {
+    display: none;
+  }
+
+  .where-row td {
+    padding: 0 8px;
+  }
+
+  /* Fixed height + scroll: a long route list can never resize the panel and shift the box
+     underneath your finger. */
+  .where-scroll {
+    display: flex;
+    height: 34px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 12.5px;
+    line-height: 1.25;
+  }
+
+  .where-scroll>span {
+    margin: auto 0;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    border: none;
+  }
+
+  .stat {
+    grid-template-columns: 1fr auto;
+    border: 1px solid #cfe0d9;
+    border-radius: 8px;
+    padding: 3px 7px 4px;
+    row-gap: 2px;
+  }
+
+  .stat:first-child {
+    border-top: 1px solid #cfe0d9;
+  }
+
+  .stat .lab {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+  }
+
+  .stat .val {
+    padding: 0;
+    font-size: 13px;
+  }
+
+  .stat .barwrap {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding: 0;
+  }
+
+  .stat.total {
+    display: none;
+    /* the total is shown next to the number instead */
+  }
+
+  .box-header {
+    padding: 5px 8px;
+    border-width: 3px;
+    border-bottom: none;
+  }
+
+  .nav-btn {
+    width: 42px;
+    height: 42px;
+  }
+
+  .grid {
+    gap: 4px;
+    padding: 6px;
+    border-width: 3px;
+    border-top-width: 3px;
+  }
+
+  .cell {
+    border-radius: 8px;
+  }
+
+  .cell img {
+    width: 53.33px;
+    max-width: 100%;
+    transform: translateY(-3px);
+    /* 32px x5 = 160 device px at 3x */
+  }
+
+  .cell .num {
+    font-size: 11px;
+    left: 3px;
+    bottom: 1px;
+  }
+
+  .total {
+    font-size: 12.5px;
+    margin-top: 5px;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 3px;
+    width: 100%;
+    max-width: 560px;
+    margin-top: 5px;
+  }
+
+  .tab {
+    min-width: 0;
+    padding: 5px 0;
+    font-size: 12px;
+  }
+}

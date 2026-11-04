@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Gen VI Box" />
+  <meta name="theme-color" content="#1d2b3a" />
+  <title>Pokémon Gen VI PC Box Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Generation VI PC Storage</h1>
+    <div class="topbar-controls">
+      <button type="button" class="sync-btn" id="syncBtn" title="Sync Status &amp; Settings">
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncText">Sync</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="sub">
+    <span class="hint-hover">Hover a Pokémon for details · click to toggle caught · ← → to change box</span>
+    <span class="hint-touch">Tap for details · tap again to toggle caught · swipe to change box</span><br>
+    Greyed-out = not in Alpha Sapphire (colour returns once caught)
+  </div>
+
+  <div class="wrap">
+    <div id="info" class="placeholder">Hover over a Pokémon to see its details</div>
+
+    <div class="box-header">
+      <button class="nav-btn" id="prev" aria-label="Previous box">◀</button>
+      <div class="box-title">
+        <div class="name" id="boxName"></div>
+        <div class="range" id="boxRange"></div>
+      </div>
+      <button class="nav-btn" id="next" aria-label="Next box">▶</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="total" id="total"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="err"></div>
+  <div id="toast"></div>
+
+  <!-- GitHub Sync Settings Modal -->
+  <div class="modal-backdrop hidden" id="syncModal" role="dialog" aria-modal="true" aria-labelledby="syncModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="syncModalTitle">GitHub Sync</h2>
+        <button type="button" class="close-btn" id="closeModalBtn" aria-label="Close">×</button>
+      </div>
+      <p class="modal-desc" id="syncModalDesc">
+        Sync caught Pokémon directly to <code>caught.json</code> in your GitHub repository for GitHub Pages.
+      </p>
+      <div id="localServerNotice" class="hidden" style="background: #172431; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; font-size: 13px; border-left: 3px solid #35c463; line-height: 1.4;">
+        <strong>Local Server Connected</strong><br>
+        Changes are saving directly to <code>caught.json</code> on your machine via <code>server.py</code>.
+      </div>
+      <form id="syncForm">
+        <div class="form-group">
+          <label for="ghRepo">GitHub Repository (owner/repo)</label>
+          <input type="text" id="ghRepo" placeholder="username/national_dex_as" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="form-group">
+          <label for="ghBranch">Branch</label>
+          <input type="text" id="ghBranch" placeholder="main" value="main" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="form-group">
+          <label for="ghToken">Personal Access Token (PAT)</label>
+          <input type="password" id="ghToken" placeholder="github_pat_... or ghp_..." autocomplete="off" />
+          <span class="help-text">
+            Fine-grained token with <strong>Contents: Read and write</strong> permission. Stored only in this browser's localStorage.
+          </span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="clearSyncBtn">Clear</button>
+          <button type="submit" class="btn-primary" id="saveSyncBtn">Save &amp; Sync</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

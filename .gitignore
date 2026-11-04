@@ -1,0 +1,7 @@
+# Python & OS artifacts
+__pycache__/
+*.py[cod]
+*.csv.tmp
+*.json.tmp
+.DS_Store
+
