@@ -42,7 +42,6 @@
   let current = Math.max(0, parseInt(localStorage.getItem("gen6box") || "0", 10) || 0);
   let infoFor = null;
   let selected = null;
-  const touchMode = window.matchMedia("(hover: none)").matches;
 
   let syncMode = "offline"; // "local" | "github" | "offline"
   let editMode = localStorage.getItem("gen6_edit_mode") === "editing";
@@ -303,10 +302,7 @@
       num.textContent = p.Ndex;
       cell.appendChild(num);
 
-      if (!touchMode) {
-        cell.addEventListener("mouseenter", () => showInfo(p));
-        cell.addEventListener("focus", () => showInfo(p));
-      }
+      cell.addEventListener("focus", () => showInfo(p));
       cell.addEventListener("click", () => onTap(p));
       cell.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -335,7 +331,7 @@
       showInfo(p);
       return;
     }
-    if (touchMode && selected !== p) {
+    if (selected !== p) {
       showInfo(p);
       return;
     }
@@ -443,10 +439,8 @@
     if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains("cell") && document.activeElement.dataset.ndex !== p.Ndex) {
       document.activeElement.blur();
     }
-    if (touchMode) {
-      const activeCell = grid.querySelector(`.cell[data-ndex="${p.Ndex}"]`);
-      if (activeCell) activeCell.classList.add("selected");
-    }
+    const activeCell = grid.querySelector(`.cell[data-ndex="${p.Ndex}"]`);
+    if (activeCell) activeCell.classList.add("selected");
     info.className = "";
     info.replaceChildren();
 
