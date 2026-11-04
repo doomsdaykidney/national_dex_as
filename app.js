@@ -349,9 +349,6 @@
     nm.className = "nm"; nm.textContent = p.Pokemon;
     const dex = document.createElement("div");
     dex.className = "dex"; dex.textContent = `No. ${p.Ndex}`;
-    const tot = document.createElement("span");
-    tot.className = "tot"; tot.textContent = ` · Total ${p.Total}`;
-    dex.appendChild(tot);
     names.append(nm, dex);
     const badge = document.createElement("button");
     badge.type = "button";
@@ -368,51 +365,46 @@
     locCol.className = "loc-col";
     const locSec = document.createElement("div");
     locSec.className = "sec"; locSec.textContent = "Location";
-    const lt = document.createElement("table");
-    lt.className = "kv";
     const loc = parseLocation(p.Location);
     if (loc.game) {
       const lg = document.createElement("span");
       lg.className = "loc-game";
       lg.textContent = " · " + (loc.game.length === 1 ? "Pokémon " : "") + loc.game;
       locSec.appendChild(lg);
+      if (loc.game !== "Alpha Sapphire") {
+        const lNote = document.createElement("span");
+        lNote.className = "loc-note";
+        lNote.textContent = " (Not in AS)";
+        locSec.appendChild(lNote);
+      }
     }
-    const renderLocationField = (td) => {
-      const box = document.createElement("div");
-      box.className = "where-scroll";
-      const locTokens = extractLocations(p);
 
-      if (loc.unobtainable) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "loc-tag unob";
-        btn.textContent = loc.where;
-        btn.title = "Click to view Unobtainable Pokémon";
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openLocationModal("Unobtainable", p);
-        });
-        box.appendChild(btn);
-        td.replaceChildren(box);
-        td.title = "Click to view Unobtainable Pokémon";
-        td.addEventListener("click", () => openLocationModal("Unobtainable", p));
-        return;
-      }
+    const whereBox = document.createElement("div");
+    whereBox.className = "where-scroll";
+    const locTokens = extractLocations(p);
 
-      if (!locTokens.length) {
-        const span = document.createElement("span");
-        span.textContent = loc.where || "Unknown";
-        box.appendChild(span);
-        td.replaceChildren(box);
-        return;
-      }
-
+    if (loc.unobtainable) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "loc-tag unob";
+      btn.textContent = loc.where;
+      btn.title = "Click to view Unobtainable Pokémon";
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openLocationModal("Unobtainable", p);
+      });
+      whereBox.appendChild(btn);
+    } else if (!locTokens.length) {
+      const span = document.createElement("span");
+      span.textContent = loc.where || "Unknown";
+      whereBox.appendChild(span);
+    } else {
       const whereLower = (loc.where || "").toLowerCase();
       if (whereLower.startsWith("from professor birch in")) {
         const pfx = document.createElement("span");
         pfx.className = "loc-prefix";
         pfx.textContent = "From Professor Birch in: ";
-        box.appendChild(pfx);
+        whereBox.appendChild(pfx);
       }
 
       const MAX_VISIBLE_LOCS = 5;
@@ -429,7 +421,7 @@
           e.stopPropagation();
           openLocationModal(tok, p);
         });
-        box.appendChild(btn);
+        whereBox.appendChild(btn);
       });
 
       if (shouldTruncate) {
@@ -443,39 +435,22 @@
           e.stopPropagation();
           openLocationModal(locTokens[0], p);
         });
-        box.appendChild(moreBtn);
-      }
-
-      td.replaceChildren(box);
-      td.title = `Click to view Pokémon in ${locTokens[0]}`;
-      td.addEventListener("click", () => openLocationModal(locTokens[0], p));
-    };
-
-    if (loc.unobtainable) {
-      const td = lt.insertRow().insertCell();
-      td.colSpan = 2; td.className = "unob";
-      renderLocationField(td);
-    } else {
-      kvRow(lt, "Game", "Pokémon " + loc.game).className = "game-row";
-      const wr = kvRow(lt, "Where", "");
-      wr.className = "where-row";
-      wr.cells[0].style.cursor = "pointer";
-      wr.cells[0].title = "Click to view location";
-      wr.cells[0].addEventListener("click", () => {
-        const tokens = extractLocations(p);
-        if (tokens.length) openLocationModal(tokens[0], p);
-      });
-      renderLocationField(wr.cells[1]);
-      if (loc.game !== "Alpha Sapphire") {
-        kvRow(lt, "Note", "Not available in Alpha Sapphire").className = "note-row";
+        whereBox.appendChild(moreBtn);
       }
     }
-    locCol.append(locSec, lt);
+
+    locCol.append(locSec, whereBox);
 
     const statCol = document.createElement("div");
     statCol.className = "stat-col";
     const statSec = document.createElement("div");
-    statSec.className = "sec stat-sec"; statSec.textContent = "Base stats";
+    statSec.className = "sec stat-sec";
+    statSec.textContent = "Base stats";
+    const stTot = document.createElement("span");
+    stTot.className = "stat-total";
+    stTot.textContent = ` · Total ${p.Total}`;
+    statSec.appendChild(stTot);
+
     const st = document.createElement("div");
     st.className = "stats";
     const addStat = (label, value, color, cls) => {
@@ -500,10 +475,9 @@
       st.appendChild(item);
     };
     for (const [key, label, color] of STATS) addStat(label, parseInt(p[key], 10), color);
-    addStat("Total", p.Total, null, "total");
     statCol.append(statSec, st);
 
-    body.append(locCol, statCol);
+    body.append(statCol, locCol);
     info.appendChild(body);
   }
 

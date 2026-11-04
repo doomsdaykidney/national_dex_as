@@ -249,7 +249,7 @@ h1 {
 
 #info .body {
   display: grid;
-  grid-template-columns: 1fr 1.25fr;
+  grid-template-columns: 1.25fr 1fr;
   gap: 14px;
   align-items: start;
 }
@@ -263,46 +263,23 @@ h1 {
   margin: 0 0 4px;
 }
 
-table.kv {
+.loc-col {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid #cfe0d9;
-  border-radius: 8px;
-  overflow: hidden;
-  font-size: 13px;
-  background: #fff;
 }
 
-table.kv td,
-table.kv th {
-  padding: 4px 6px;
-  text-align: left;
-  vertical-align: top;
-  border: none;
-}
-
-/* Horizontal dividers between rows on desktop */
-table.kv tr.where-row td,
-table.kv tr.where-row th,
-table.kv tr.note-row td,
-table.kv tr.note-row th {
-  border-top: 1px solid #cfe0d9;
-}
-
-.note-row td {
-  font-size: 12px;
+.loc-game {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--muted);
-  font-style: italic;
 }
 
-table.kv th {
-  background: #e7f3ee;
-  width: 1%;
-  min-width: 58px;
-  font-weight: 600;
-  white-space: nowrap;
-  border-right: 1px solid #cfe0d9;
+.loc-note {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #c96259;
+  font-size: 11px;
 }
 
 /* Stats grid: one row per stat on desktop, compact 3-column tiles on phones */
@@ -346,23 +323,11 @@ table.kv th {
   font-weight: 600;
 }
 
-.stat.total {
-  grid-template-columns: 58px 1fr;
-}
-
-.stat.total .val {
-  text-align: left;
-  font-weight: 700;
-}
-
-#info .dex .tot {
-  display: none;
-  /* shown on phones, where the Total tile is dropped */
-}
-
-.loc-game {
-  display: none;
-  /* shown on phones, where the Game row is dropped */
+.stat-total {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
 }
 
 .bar {
@@ -1090,7 +1055,7 @@ table.kv th {
   height: 48px;
   overflow: hidden;
   line-height: 1.3;
-  padding: 1px 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -1109,16 +1074,6 @@ table.kv th {
 
 .where-scroll::-webkit-scrollbar-thumb:hover {
   background: #a3c7ba;
-}
-
-.where-row td,
-table.kv td.unob {
-  cursor: pointer;
-}
-
-.where-row td:hover,
-table.kv td.unob:hover {
-  background: #f7fbf9;
 }
 
 .loc-tag {
@@ -1449,10 +1404,6 @@ table.kv td.unob:hover {
     font-size: 17px;
   }
 
-  #info .dex .tot {
-    display: inline;
-  }
-
   #info .badge {
     min-height: 38px;
     padding: 5px 13px;
@@ -1470,43 +1421,6 @@ table.kv td.unob:hover {
     letter-spacing: 0;
   }
 
-  .game-row,
-  .note-row,
-  .stat-sec {
-    display: none;
-    /* game is in the heading; stats are self-explanatory */
-  }
-
-  table.kv {
-    height: 56px;
-    border: 1px solid #cfe0d9;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #fff;
-    box-sizing: border-box;
-  }
-
-  .where-row th {
-    display: none;
-  }
-
-  table.kv td,
-  table.kv th,
-  table.kv tr.where-row td,
-  table.kv tr.where-row th,
-  table.kv tr.note-row td,
-  table.kv tr.note-row th {
-    border: none;
-  }
-
-  .where-row td,
-  table.kv td.unob {
-    padding: 3px 8px;
-    height: 54px;
-    box-sizing: border-box;
-    vertical-align: top;
-  }
-
   /* Fixed height sized for exactly 2 full rows of location tags.
      Ensures the location box and the stats boxes below it NEVER shift between 1-row and 2-row Pokémon. */
   .where-scroll {
@@ -1519,7 +1433,7 @@ table.kv td.unob:hover {
     overflow: hidden;
     font-size: 11.5px;
     line-height: 1.25;
-    padding: 1px 0;
+    padding: 0;
     box-sizing: border-box;
   }
 
@@ -1563,11 +1477,6 @@ table.kv td.unob:hover {
     grid-column: 1 / -1;
     grid-row: 2;
     padding: 0;
-  }
-
-  .stat.total {
-    display: none;
-    /* the total is shown next to the number instead */
   }
 
   .box-header {
@@ -1677,7 +1586,8 @@ table.kv td.unob:hover {
   }
 
   .search-input {
-    font-size: 16px; /* 16px prevents iOS Safari from auto-zooming on focus */
+    font-size: 16px;
+    /* 16px prevents iOS Safari from auto-zooming on focus */
   }
 
   .search-results {
