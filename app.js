@@ -152,7 +152,7 @@
     $("prev").disabled = current === 0;
     $("next").disabled = current === boxCount - 1;
     updateSliderState();
-    renderTotal();
+    renderTotals();
   }
 
   function onTap(p) {
@@ -222,10 +222,27 @@
     }
   }
 
-  function renderTotal() {
-    const caught = pokemon.filter(isCaught).length;
-    const s = boxStats(current);
-    $("total").textContent = `Box ${current + 1}: ${s.caught}/${s.size} caught · Total: ${caught}/${pokemon.length}`;
+  function renderTotals() {
+    const totalCountEl = $("totalCount");
+    const obtainableCountEl = $("obtainableCount");
+    if (!totalCountEl || !obtainableCountEl || !pokemon.length) return;
+
+    let caughtTotal = 0;
+    let asTotal = 0;
+    let asCaught = 0;
+
+    for (let i = 0; i < pokemon.length; i++) {
+      const p = pokemon[i];
+      const caught = isCaught(p);
+      if (caught) caughtTotal++;
+      if (isAlphaSapphire(p)) {
+        asTotal++;
+        if (caught) asCaught++;
+      }
+    }
+
+    obtainableCountEl.textContent = `${asCaught}/${asTotal}`;
+    totalCountEl.textContent = `${caughtTotal}/${pokemon.length}`;
   }
 
   function goTo(b) {
@@ -371,7 +388,7 @@
     }
     if (infoFor === p) updateBadge();
     updateSliderState();
-    renderTotal();
+    renderTotals();
   }
 
   // ---- Toggling & Syncing -----------------------------------------------
