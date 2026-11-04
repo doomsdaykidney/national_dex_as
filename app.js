@@ -365,6 +365,7 @@
     body.className = "body";
 
     const locCol = document.createElement("div");
+    locCol.className = "loc-col";
     const locSec = document.createElement("div");
     locSec.className = "sec"; locSec.textContent = "Location";
     const lt = document.createElement("table");
@@ -414,7 +415,11 @@
         box.appendChild(pfx);
       }
 
-      locTokens.forEach((tok) => {
+      const MAX_VISIBLE_LOCS = 5;
+      const shouldTruncate = locTokens.length > 6;
+      const displayTokens = shouldTruncate ? locTokens.slice(0, MAX_VISIBLE_LOCS) : locTokens;
+
+      displayTokens.forEach((tok) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "loc-tag";
@@ -426,6 +431,20 @@
         });
         box.appendChild(btn);
       });
+
+      if (shouldTruncate) {
+        const remainingCount = locTokens.length - MAX_VISIBLE_LOCS;
+        const moreBtn = document.createElement("button");
+        moreBtn.type = "button";
+        moreBtn.className = "loc-tag more";
+        moreBtn.textContent = `+${remainingCount} more`;
+        moreBtn.title = `Click to view all ${locTokens.length} locations for ${p.Pokemon}`;
+        moreBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openLocationModal(locTokens[0], p);
+        });
+        box.appendChild(moreBtn);
+      }
 
       td.replaceChildren(box);
       td.title = `Click to view Pokémon in ${locTokens[0]}`;
@@ -454,6 +473,7 @@
     locCol.append(locSec, lt);
 
     const statCol = document.createElement("div");
+    statCol.className = "stat-col";
     const statSec = document.createElement("div");
     statSec.className = "sec stat-sec"; statSec.textContent = "Base stats";
     const st = document.createElement("div");
@@ -695,12 +715,16 @@
     if (allTokens.length > 1) {
       locModalTabs.replaceChildren();
       allTokens.forEach((tok) => {
+        const isSelected = tok.toLowerCase() === locName.toLowerCase();
         const tabBtn = document.createElement("button");
         tabBtn.type = "button";
-        tabBtn.className = "loc-tab-btn" + (tok.toLowerCase() === locName.toLowerCase() ? " active" : "");
+        tabBtn.className = "loc-tab-btn" + (isSelected ? " active" : "");
         tabBtn.textContent = tok;
         tabBtn.addEventListener("click", () => openLocationModal(tok, source));
         locModalTabs.appendChild(tabBtn);
+        if (isSelected) {
+          setTimeout(() => tabBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" }), 25);
+        }
       });
       locModalTabs.classList.remove("hidden");
     } else {
