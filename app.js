@@ -30,6 +30,9 @@
   const closeLocModalBtn = $("closeLocModalBtn");
   const locModalTabs = $("locModalTabs");
   const locModalList = $("locModalList");
+  const searchInput = $("searchInput");
+  const searchClearBtn = $("searchClearBtn");
+  const searchResults = $("searchResults");
 
   let pokemon = [];
   let caughtSet = new Set();
@@ -684,7 +687,8 @@
     locModalTitle.textContent = locName;
     locModalTitle.title = locName;
 
-    const source = sourcePokemon || selected || infoFor;
+    const candidateSource = sourcePokemon || selected || infoFor;
+    const source = (candidateSource && extractLocations(candidateSource).some((t) => t.toLowerCase() === locName.toLowerCase())) ? candidateSource : null;
     const allTokens = source ? extractLocations(source) : [];
 
     // Render tabs if source has multiple locations
@@ -806,7 +810,10 @@
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (!locationModal.classList.contains("hidden")) {
+      if (!searchResults.classList.contains("hidden")) {
+        closeSearchResults();
+        searchInput.blur();
+      } else if (!locationModal.classList.contains("hidden")) {
         closeLocationModal();
       } else if (!syncModal.classList.contains("hidden")) {
         closeSyncModal();
@@ -925,6 +932,294 @@
     if (e.key === "ArrowRight") goTo(current + 1);
   });
 
+  // ---- Search Functionality --------------------------------------------
+  let allLocations = [];
+  let activeSearchHighlightIndex = -1;
+
+  function buildLocationIndex() {
+    const locSet = new Set();
+    locSet.add("Unobtainable");
+    for (const p of pokemon) {
+      const locs = extractLocations(p);
+      for (const l of locs) {
+        if (l) locSet.add(l);
+      }
+    }
+    allLocations = Array.from(locSet).sort((a, b) => {
+      const ra = a.match(/^Route\s+(\d+)$/i);
+      const rb = b.match(/^Route\s+(\d+)$/i);
+      if (ra && rb) return parseInt(ra[1], 10) - parseInt(rb[1], 10);
+      return a.localeCompare(b);
+    });
+  }
+
+  function closeSearchResults() {
+    searchResults.classList.add("hidden");
+    searchResults.replaceChildren();
+    activeSearchHighlightIndex = -1;
+  }
+
+  function getMatchingPokemon(query) {
+    const lowerQ = query.toLowerCase();
+    const cleanQ = lowerQ.replace(/^#/, "").trim();
+    const numTarget = /^\d+$/.test(cleanQ) ? parseInt(cleanQ, 10) : null;
+
+    const scored = [];
+    for (const p of pokemon) {
+      const pName = p.Pokemon.toLowerCase();
+      const pNdexInt = parseInt(p.Ndex, 10);
+      let score = 0;
+
+      if (numTarget !== null && pNdexInt === numTarget) {
+        score = 100;
+      } else if (pName === lowerQ) {
+        score = 95;
+      } else if (pName.startsWith(lowerQ)) {
+        score = 80;
+      } else if (cleanQ && p.Ndex.startsWith(cleanQ)) {
+        score = 70;
+      } else if (pName.includes(lowerQ)) {
+        score = 50;
+      } else if (cleanQ && p.Ndex.includes(cleanQ)) {
+        score = 40;
+      }
+
+      if (score > 0) {
+        scored.push({ pokemon: p, score });
+      }
+    }
+
+    scored.sort((a, b) => b.score - a.score || parseInt(a.pokemon.Ndex, 10) - parseInt(b.pokemon.Ndex, 10));
+    return scored.slice(0, 8).map((s) => s.pokemon);
+  }
+
+  function getMatchingLocations(query) {
+    const lowerQ = query.toLowerCase();
+    const routeMatch = lowerQ.match(/^(?:route\s*|r)?\s*(\d+)$/i);
+    const routeNum = routeMatch ? parseInt(routeMatch[1], 10) : null;
+
+    const scored = [];
+    for (const loc of allLocations) {
+      const lowerLoc = loc.toLowerCase();
+      let score = 0;
+
+      if (routeNum !== null) {
+        const m = lowerLoc.match(/^route\s+(\d+)$/i);
+        if (m && parseInt(m[1], 10) === routeNum) {
+          score = 100;
+        }
+      }
+
+      if (!score) {
+        if (lowerLoc === lowerQ) {
+          score = 95;
+        } else if (lowerLoc.startsWith(lowerQ)) {
+          score = 80;
+        } else if (lowerLoc.includes(lowerQ)) {
+          score = 60;
+        }
+      }
+
+      if (score > 0) {
+        scored.push({ loc, score });
+      }
+    }
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const ra = a.loc.match(/^Route\s+(\d+)$/i);
+      const rb = b.loc.match(/^Route\s+(\d+)$/i);
+      if (ra && rb) return parseInt(ra[1], 10) - parseInt(rb[1], 10);
+      return a.loc.localeCompare(b.loc);
+    });
+
+    return scored.slice(0, 6).map((s) => s.loc);
+  }
+
+  function renderSearchResults(query) {
+    const matchedPokemon = getMatchingPokemon(query);
+    const matchedLocations = getMatchingLocations(query);
+
+    searchResults.replaceChildren();
+    activeSearchHighlightIndex = -1;
+
+    if (!matchedPokemon.length && !matchedLocations.length) {
+      const empty = document.createElement("div");
+      empty.className = "search-empty";
+      empty.textContent = `No Pokémon or locations matching "${query}"`;
+      searchResults.appendChild(empty);
+      searchResults.classList.remove("hidden");
+      return;
+    }
+
+    if (matchedPokemon.length) {
+      const head = document.createElement("div");
+      head.className = "search-group-header";
+      head.textContent = `Pokémon (${matchedPokemon.length})`;
+      searchResults.appendChild(head);
+
+      matchedPokemon.forEach((p) => {
+        const item = document.createElement("div");
+        item.className = "search-item";
+        item.setAttribute("role", "option");
+        item.tabIndex = -1;
+
+        const left = document.createElement("div");
+        left.className = "search-item-left";
+
+        const img = document.createElement("img");
+        img.className = "search-item-sprite";
+        img.src = `icons/${p.Ndex}.png`;
+        img.alt = "";
+        img.loading = "lazy";
+
+        const dex = document.createElement("span");
+        dex.className = "search-item-dex";
+        dex.textContent = `#${p.Ndex}`;
+
+        const name = document.createElement("span");
+        name.className = "search-item-name";
+        name.textContent = p.Pokemon;
+
+        left.append(img, dex, name);
+
+        const badge = document.createElement("span");
+        const c = isCaught(p);
+        badge.className = "search-badge " + (c ? "caught" : "uncaught");
+        badge.textContent = c ? "● Caught" : "○ Not caught";
+
+        item.append(left, badge);
+
+        item.addEventListener("click", () => {
+          revealPokemon(p);
+          closeSearchResults();
+          searchInput.blur();
+        });
+
+        searchResults.appendChild(item);
+      });
+    }
+
+    if (matchedLocations.length) {
+      const head = document.createElement("div");
+      head.className = "search-group-header";
+      head.textContent = `Locations (${matchedLocations.length})`;
+      searchResults.appendChild(head);
+
+      matchedLocations.forEach((loc) => {
+        const item = document.createElement("div");
+        item.className = "search-item";
+        item.setAttribute("role", "option");
+        item.tabIndex = -1;
+
+        const left = document.createElement("div");
+        left.className = "search-item-left";
+
+        const icon = document.createElement("span");
+        icon.className = "search-item-loc-icon";
+        icon.textContent = "📍";
+
+        const name = document.createElement("span");
+        name.className = "search-item-name";
+        name.textContent = loc;
+
+        left.append(icon, name);
+
+        const count = findPokemonForLocation(loc).length;
+        const badge = document.createElement("span");
+        badge.className = "search-badge loc";
+        badge.textContent = `${count} Pokémon`;
+
+        item.append(left, badge);
+
+        item.addEventListener("click", () => {
+          openLocationModal(loc);
+          closeSearchResults();
+          searchInput.blur();
+        });
+
+        searchResults.appendChild(item);
+      });
+    }
+
+    searchResults.classList.remove("hidden");
+  }
+
+  function handleSearchInput() {
+    const query = searchInput.value.trim();
+    if (!query) {
+      searchClearBtn.classList.add("hidden");
+      closeSearchResults();
+      return;
+    }
+
+    searchClearBtn.classList.remove("hidden");
+    renderSearchResults(query);
+  }
+
+  function updateSearchHighlight(items) {
+    items.forEach((item, idx) => {
+      const isHl = idx === activeSearchHighlightIndex;
+      item.classList.toggle("highlighted", isHl);
+      if (isHl) {
+        item.scrollIntoView({ block: "nearest" });
+      }
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", handleSearchInput);
+    searchInput.addEventListener("focus", () => {
+      if (searchInput.value.trim()) handleSearchInput();
+    });
+    searchInput.addEventListener("keydown", (e) => {
+      const items = searchResults.querySelectorAll(".search-item");
+      if (!items.length) {
+        if (e.key === "Escape") {
+          closeSearchResults();
+          searchInput.blur();
+        }
+        return;
+      }
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        activeSearchHighlightIndex = (activeSearchHighlightIndex + 1) % items.length;
+        updateSearchHighlight(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        activeSearchHighlightIndex = (activeSearchHighlightIndex - 1 + items.length) % items.length;
+        updateSearchHighlight(items);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (activeSearchHighlightIndex >= 0 && activeSearchHighlightIndex < items.length) {
+          items[activeSearchHighlightIndex].click();
+        } else if (items.length > 0) {
+          items[0].click();
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeSearchResults();
+        searchInput.blur();
+      }
+    });
+  }
+
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      searchClearBtn.classList.add("hidden");
+      closeSearchResults();
+      searchInput.focus();
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".search-container")) {
+      closeSearchResults();
+    }
+  });
+
   // ---- App Initialization ----------------------------------------------
   async function init() {
     // 1. Fetch immutable Pokémon Pokédex data
@@ -936,6 +1231,7 @@
       boxCount = Math.ceil(pokemon.length / PER_BOX);
       current = Math.min(current, Math.max(0, boxCount - 1));
       setupBoxSlider();
+      buildLocationIndex();
     } catch (e) {
       const err = $("err");
       err.style.display = "block";
