@@ -24,8 +24,6 @@
   const boxSlider = $("boxSlider");
   const sliderFill = $("sliderFill");
   const sliderStops = $("sliderStops");
-  const sliderMinBtn = $("sliderMinBtn");
-  const sliderMaxBtn = $("sliderMaxBtn");
 
   let pokemon = [];
   let caughtSet = new Set();
@@ -174,15 +172,6 @@
     boxSlider.max = String(boxCount);
     boxSlider.value = String(current + 1);
 
-    if (sliderMinBtn) {
-      sliderMinBtn.textContent = "1";
-      sliderMinBtn.onclick = () => goTo(0);
-    }
-    if (sliderMaxBtn) {
-      sliderMaxBtn.textContent = String(boxCount);
-      sliderMaxBtn.onclick = () => goTo(boxCount - 1);
-    }
-
     if (sliderStops) {
       sliderStops.replaceChildren();
       for (let b = 0; b < boxCount; b++) {
@@ -208,7 +197,7 @@
     boxSlider.setAttribute("aria-valuetext", `Box ${targetVal}`);
 
     if (sliderFill && boxCount > 1) {
-      sliderFill.style.width = `calc(15px + (${current} / ${boxCount - 1}) * (100% - 30px))`;
+      sliderFill.style.width = `${(current / (boxCount - 1)) * 100}%`;
     }
 
     if (sliderStops) {
