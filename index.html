@@ -35,7 +35,27 @@
   </div>
 
   <div class="total" id="total"></div>
-  <div class="tabs" id="tabs"></div>
+
+  <div class="box-slider-container">
+    <button type="button" class="slider-end-btn" id="sliderMinBtn" aria-label="First box (Box 1)">1</button>
+    <div class="slider-track-wrap">
+      <div class="slider-groove">
+        <div class="slider-fill" id="sliderFill"></div>
+        <div class="slider-stops" id="sliderStops" aria-hidden="true"></div>
+      </div>
+      <input
+        type="range"
+        id="boxSlider"
+        min="1"
+        max="25"
+        value="1"
+        step="1"
+        aria-label="PC Box number"
+      />
+    </div>
+    <button type="button" class="slider-end-btn" id="sliderMaxBtn" aria-label="Last box (Box 25)">25</button>
+  </div>
+
   <div id="err"></div>
   <div id="toast"></div>
 

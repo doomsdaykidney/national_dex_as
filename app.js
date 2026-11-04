@@ -21,6 +21,11 @@
   const ghTokenInput = $("ghToken");
   const clearSyncBtn = $("clearSyncBtn");
   const localServerNotice = $("localServerNotice");
+  const boxSlider = $("boxSlider");
+  const sliderFill = $("sliderFill");
+  const sliderStops = $("sliderStops");
+  const sliderMinBtn = $("sliderMinBtn");
+  const sliderMaxBtn = $("sliderMaxBtn");
 
   let pokemon = [];
   let caughtSet = new Set();
@@ -146,7 +151,7 @@
     $("boxRange").textContent = `#${String(first).padStart(3, "0")} – #${String(last).padStart(3, "0")}`;
     $("prev").disabled = current === 0;
     $("next").disabled = current === boxCount - 1;
-    renderTabs();
+    updateSliderState();
     renderTotal();
   }
 
@@ -163,24 +168,64 @@
     return { caught: slice.filter(isCaught).length, size: slice.length };
   }
 
-  function renderTabs() {
-    const tabs = $("tabs");
-    tabs.replaceChildren();
-    for (let b = 0; b < boxCount; b++) {
-      const s = boxStats(b);
-      const t = document.createElement("div");
-      t.className = "tab" + (b === current ? " current" : "") + (s.caught === s.size ? " done" : "");
-      t.textContent = b + 1;
-      t.title = `Box ${b + 1}: ${s.caught}/${s.size} caught`;
-      t.addEventListener("click", () => goTo(b));
-      tabs.appendChild(t);
+  function setupBoxSlider() {
+    if (!boxSlider || boxCount <= 0) return;
+    boxSlider.min = "1";
+    boxSlider.max = String(boxCount);
+    boxSlider.value = String(current + 1);
+
+    if (sliderMinBtn) {
+      sliderMinBtn.textContent = "1";
+      sliderMinBtn.onclick = () => goTo(0);
+    }
+    if (sliderMaxBtn) {
+      sliderMaxBtn.textContent = String(boxCount);
+      sliderMaxBtn.onclick = () => goTo(boxCount - 1);
+    }
+
+    if (sliderStops) {
+      sliderStops.replaceChildren();
+      for (let b = 0; b < boxCount; b++) {
+        const pct = boxCount > 1 ? (b / (boxCount - 1)) * 100 : 0;
+        const stop = document.createElement("span");
+        stop.className = "slider-stop";
+        stop.style.left = `${pct}%`;
+        stop.dataset.box = String(b);
+        sliderStops.appendChild(stop);
+      }
+    }
+
+    updateSliderState();
+  }
+
+  function updateSliderState() {
+    if (!boxSlider) return;
+    const targetVal = String(current + 1);
+    if (boxSlider.value !== targetVal) {
+      boxSlider.value = targetVal;
+    }
+    boxSlider.setAttribute("aria-valuenow", targetVal);
+    boxSlider.setAttribute("aria-valuetext", `Box ${targetVal}`);
+
+    if (sliderFill && boxCount > 1) {
+      sliderFill.style.width = `calc(11px + (${current} / ${boxCount - 1}) * (100% - 22px))`;
+    }
+
+    if (sliderStops) {
+      const stops = sliderStops.children;
+      for (let i = 0; i < stops.length; i++) {
+        const s = stops[i];
+        const b = parseInt(s.dataset.box, 10);
+        const stats = boxStats(b);
+        s.classList.toggle("done", stats.caught === stats.size);
+      }
     }
   }
 
   function renderTotal() {
     const caught = pokemon.filter(isCaught).length;
     const s = boxStats(current);
-    $("total").textContent = `This box: ${s.caught}/${s.size} caught · Total: ${caught}/${pokemon.length}`;
+    $("total").textContent = `Box ${current + 1}: ${s.caught}/${s.size} caught · Total: ${caught}/${pokemon.length}`;
   }
 
   function goTo(b) {
@@ -325,7 +370,7 @@
       cell.classList.toggle("uncaught", !c);
     }
     if (infoFor === p) updateBadge();
-    renderTabs();
+    updateSliderState();
     renderTotal();
   }
 
@@ -580,6 +625,21 @@
   $("prev").addEventListener("click", () => goTo(current - 1));
   $("next").addEventListener("click", () => goTo(current + 1));
 
+  if (boxSlider) {
+    boxSlider.addEventListener("input", () => {
+      const b = parseInt(boxSlider.value, 10) - 1;
+      if (b !== current) {
+        goTo(b);
+      }
+    });
+    boxSlider.addEventListener("change", () => {
+      const b = parseInt(boxSlider.value, 10) - 1;
+      if (b !== current) {
+        goTo(b);
+      }
+    });
+  }
+
   let swipeStart = null;
   grid.addEventListener("touchstart", (e) => {
     const t = e.changedTouches[0];
@@ -609,6 +669,7 @@
       pokemon = data.pokemon || [];
       boxCount = Math.ceil(pokemon.length / PER_BOX);
       current = Math.min(current, Math.max(0, boxCount - 1));
+      setupBoxSlider();
     } catch (e) {
       const err = $("err");
       err.style.display = "block";
