@@ -12,7 +12,6 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Generation VI PC Storage</h1>
     <div class="topbar-controls">
       <button type="button" class="sync-btn" id="syncBtn" title="Sync Status &amp; Settings">
         <span class="sync-dot" id="syncDot"></span>
@@ -21,14 +20,8 @@
     </div>
   </header>
 
-  <div class="sub">
-    <span class="hint-hover">Hover a Pokémon for details · click to toggle caught · ← → to change box</span>
-    <span class="hint-touch">Tap for details · tap again to toggle caught · swipe to change box</span><br>
-    Greyed-out = not in Alpha Sapphire (colour returns once caught)
-  </div>
-
   <div class="wrap">
-    <div id="info" class="placeholder">Hover over a Pokémon to see its details</div>
+    <div id="info"></div>
 
     <div class="box-header">
       <button class="nav-btn" id="prev" aria-label="Previous box">◀</button>
