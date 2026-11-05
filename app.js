@@ -4,7 +4,33 @@
     ["HP", "HP", "#e8453c"], ["Attack", "Attack", "#f08a30"], ["Defense", "Defense", "#f2c230"],
     ["Sp_Atk", "Sp. Atk", "#5a8fe0"], ["Sp_Def", "Sp. Def", "#6cc36a"], ["Speed", "Speed", "#e866a8"],
   ];
-  const GAMES = ["Alpha Sapphire", "Omega Ruby", "Y", "X"];
+  const PRIMARY_GAME = "Alpha Sapphire";
+  const GAMES = [PRIMARY_GAME, "Omega Ruby", "Y", "X"];
+
+  const STORAGE_KEYS = {
+    BOX: "gen6box",
+    NDEX: "gen6ndex",
+    CAUGHT: "gen6_caught",
+    EDIT_MODE: "gen6_edit_mode",
+    GH_REPO: "gen6_gh_repo",
+    GH_BRANCH: "gen6_gh_branch",
+    GH_TOKEN: "gen6_gh_token",
+  };
+
+  const SYNC_MODES = {
+    OFFLINE: "offline",
+    LOCAL: "local",
+    GITHUB: "github",
+  };
+
+  const SYNC_STATUS = {
+    OFFLINE: "offline",
+    SYNCED: "synced",
+    SAVING: "saving",
+    ERROR: "error",
+  };
+
+  const READ_ONLY_MSG = "Read Only mode. Toggle Editing at top to make changes.";
 
   const $ = (id) => document.getElementById(id);
   const grid = $("grid");
@@ -39,13 +65,13 @@
   let pokemon = [];
   let caughtSet = new Set();
   let boxCount = 0;
-  let current = Math.max(0, parseInt(localStorage.getItem("gen6box") || "0", 10) || 0);
+  let current = Math.max(0, parseInt(localStorage.getItem(STORAGE_KEYS.BOX) || "0", 10) || 0);
   let infoFor = null;
   let selected = null;
 
-  let syncMode = "offline"; // "local" | "github" | "offline"
-  let editMode = localStorage.getItem("gen6_edit_mode") === "editing";
-  const isLoggedIn = () => syncMode === "local" || syncMode === "github";
+  let syncMode = SYNC_MODES.OFFLINE;
+  let editMode = localStorage.getItem(STORAGE_KEYS.EDIT_MODE) === "editing";
+  const isLoggedIn = () => syncMode === SYNC_MODES.LOCAL || syncMode === SYNC_MODES.GITHUB;
   const canEdit = () => isLoggedIn() && editMode;
   let ghSha = null;
   let saveChain = Promise.resolve();
@@ -60,7 +86,7 @@
   }
 
   function setSyncStatus(status, text, tooltip) {
-    syncDot.className = "sync-dot " + (status || "offline");
+    syncDot.className = "sync-dot " + (status || SYNC_STATUS.OFFLINE);
     syncText.textContent = text || "Sync";
     syncBtn.title = tooltip || text || "";
   }
@@ -88,7 +114,7 @@
     if (!isLoggedIn()) return;
     editMode = !editMode;
     try {
-      localStorage.setItem("gen6_edit_mode", editMode ? "editing" : "readonly");
+      localStorage.setItem(STORAGE_KEYS.EDIT_MODE, editMode ? "editing" : "readonly");
     } catch (e) {}
     updateEditModeUI();
     showToast(editMode ? "Editing mode enabled." : "Read Only mode enabled.");
@@ -99,15 +125,15 @@
   }
 
   function parseLocation(text) {
-    if (!text) return { game: "Alpha Sapphire", where: "Unknown" };
+    if (!text) return { game: PRIMARY_GAME, where: "Unknown" };
     if (text.startsWith("Unobtainable")) return { game: null, where: text, unobtainable: true };
     for (const g of GAMES) {
       if (text.startsWith(g + ": ")) return { game: g, where: text.slice(g.length + 2) };
     }
-    return { game: "Alpha Sapphire", where: text };
+    return { game: PRIMARY_GAME, where: text };
   }
 
-  const isAlphaSapphire = (p) => parseLocation(p.Location).game === "Alpha Sapphire";
+  const isAlphaSapphire = (p) => parseLocation(p.Location).game === PRIMARY_GAME;
 
   function compactRoutes(text) {
     if (!text) return "";
@@ -194,7 +220,7 @@
     const baseLocToGames = new Map();
     for (const p of pokemon) {
       if (!p || !p.Location || p.Location.startsWith("Unobtainable")) continue;
-      const game = parseLocation(p.Location).game || "Alpha Sapphire";
+      const game = parseLocation(p.Location).game || PRIMARY_GAME;
       const baseTokens = extractRawBaseLocations(p.Location);
       for (const tok of baseTokens) {
         if (!baseLocToGames.has(tok)) {
@@ -213,7 +239,7 @@
   function extractLocations(p) {
     if (!p || !p.Location) return [];
     if (p.Location.startsWith("Unobtainable")) return ["Unobtainable"];
-    const game = parseLocation(p.Location).game || "Alpha Sapphire";
+    const game = parseLocation(p.Location).game || PRIMARY_GAME;
     const rawTokens = extractRawBaseLocations(p.Location);
     return rawTokens.map((tok) => {
       if (sharedLocationBaseNames.has(tok)) {
@@ -439,7 +465,7 @@
 
   function goTo(b) {
     current = Math.min(Math.max(0, b), boxCount - 1);
-    localStorage.setItem("gen6box", String(current));
+    localStorage.setItem(STORAGE_KEYS.BOX, String(current));
     preloadBox(current);
     preloadBox(current + 1);
     preloadBox(current - 1);
@@ -460,7 +486,7 @@
   function showInfo(p) {
     infoFor = p;
     selected = p;
-    localStorage.setItem("gen6ndex", p.Ndex);
+    localStorage.setItem(STORAGE_KEYS.NDEX, p.Ndex);
     grid.querySelectorAll(".cell.selected").forEach((c) => c.classList.remove("selected"));
     if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains("cell") && document.activeElement.dataset.ndex !== p.Ndex) {
       document.activeElement.blur();
@@ -486,7 +512,7 @@
     badge.id = "badge";
     badge.addEventListener("click", () => {
       if (!canEdit()) {
-        showToast("Read Only mode. Toggle Editing at top to make changes.");
+        showToast(READ_ONLY_MSG);
         return;
       }
       toggleCaught(p);
@@ -620,7 +646,7 @@
     badge.textContent = c ? "● Caught" : "○ Not caught";
     badge.title = canEdit()
       ? (c ? "Click to mark as not caught" : "Click to mark as caught")
-      : "Read Only mode. Toggle Editing at top to make changes.";
+      : READ_ONLY_MSG;
   }
 
   function refreshCaughtUI(p) {
@@ -638,7 +664,7 @@
   // ---- Toggling & Syncing -----------------------------------------------
   function toggleCaught(p) {
     if (!canEdit()) {
-      showToast("Read Only mode. Toggle Editing at top to make changes.");
+      showToast(READ_ONLY_MSG);
       return;
     }
     const id = parseInt(p.Ndex, 10);
@@ -651,14 +677,14 @@
 
     // Persist to local browser storage immediately
     try {
-      localStorage.setItem("gen6_caught", JSON.stringify(Array.from(caughtSet)));
+      localStorage.setItem(STORAGE_KEYS.CAUGHT, JSON.stringify(Array.from(caughtSet)));
     } catch (e) {}
 
     refreshCaughtUI(p);
 
     saveChain = saveChain.then(async () => {
-      if (syncMode === "local") {
-        setSyncStatus("saving", "Saving...", "Saving to local caught.json");
+      if (syncMode === SYNC_MODES.LOCAL) {
+        setSyncStatus(SYNC_STATUS.SAVING, "Saving...", "Saving to local caught.json");
         try {
           const res = await fetch("/api/caught", {
             method: "POST",
@@ -668,22 +694,22 @@
           if (!res.ok) throw new Error("HTTP " + res.status);
           const data = await res.json();
           if (!data.ok) throw new Error(data.error || "Save failed");
-          setSyncStatus("synced", "Local Server", "Saved to local caught.json");
+          setSyncStatus(SYNC_STATUS.SYNCED, "Local Server", "Saved to local caught.json");
         } catch (e) {
-          setSyncStatus("error", "Local Error", e.message);
+          setSyncStatus(SYNC_STATUS.ERROR, "Local Error", e.message);
           showToast("Local save error: " + e.message);
         }
-      } else if (syncMode === "github") {
-        setSyncStatus("saving", "Syncing...", "Pushing caught.json to GitHub");
+      } else if (syncMode === SYNC_MODES.GITHUB) {
+        setSyncStatus(SYNC_STATUS.SAVING, "Syncing...", "Pushing caught.json to GitHub");
         try {
           await pushCaughtToGitHub();
-          setSyncStatus("synced", "GitHub Synced", "Changes synced to GitHub");
+          setSyncStatus(SYNC_STATUS.SYNCED, "Synced", "Changes synced to GitHub");
         } catch (e) {
-          setSyncStatus("error", "Sync Error", e.message);
+          setSyncStatus(SYNC_STATUS.ERROR, "Sync Error", e.message);
           showToast("GitHub sync error: " + e.message);
         }
       } else {
-        setSyncStatus("offline", "Saved Locally", "Saved in browser. Click Sync to configure GitHub.");
+        setSyncStatus(SYNC_STATUS.OFFLINE, "Saved Locally", "Saved in browser. Click Sync to configure GitHub.");
       }
     });
   }
@@ -728,9 +754,9 @@
   }
 
   async function pushCaughtToGitHub() {
-    const repo = localStorage.getItem("gen6_gh_repo");
-    const branch = localStorage.getItem("gen6_gh_branch") || "main";
-    const token = localStorage.getItem("gen6_gh_token");
+    const repo = localStorage.getItem(STORAGE_KEYS.GH_REPO);
+    const branch = localStorage.getItem(STORAGE_KEYS.GH_BRANCH) || "main";
+    const token = localStorage.getItem(STORAGE_KEYS.GH_TOKEN);
     if (!repo || !token) throw new Error("Missing GitHub repository or token");
 
     if (!ghSha) {
@@ -789,9 +815,9 @@
 
   // ---- Modal Handling --------------------------------------------------
   function openSyncModal() {
-    ghRepoInput.value = localStorage.getItem("gen6_gh_repo") || "";
-    ghBranchInput.value = localStorage.getItem("gen6_gh_branch") || "main";
-    ghTokenInput.value = localStorage.getItem("gen6_gh_token") || "";
+    ghRepoInput.value = localStorage.getItem(STORAGE_KEYS.GH_REPO) || "";
+    ghBranchInput.value = localStorage.getItem(STORAGE_KEYS.GH_BRANCH) || "main";
+    ghTokenInput.value = localStorage.getItem(STORAGE_KEYS.GH_TOKEN) || "";
 
     // If repo is empty and hosted on github.io, auto-fill reasonable default
     if (!ghRepoInput.value && window.location.hostname.endsWith(".github.io")) {
@@ -801,7 +827,7 @@
       ghRepoInput.value = `${owner}/${repoName}`;
     }
 
-    if (syncMode === "local") {
+    if (syncMode === SYNC_MODES.LOCAL) {
       localServerNotice.classList.remove("hidden");
     } else {
       localServerNotice.classList.add("hidden");
@@ -896,7 +922,7 @@
         badge.addEventListener("click", (e) => {
           e.stopPropagation();
           if (!canEdit()) {
-            showToast("Read Only mode. Toggle Editing at top to make changes.");
+            showToast(READ_ONLY_MSG);
             return;
           }
           toggleCaught(p);
@@ -969,13 +995,13 @@
   });
 
   clearSyncBtn.addEventListener("click", () => {
-    localStorage.removeItem("gen6_gh_repo");
-    localStorage.removeItem("gen6_gh_branch");
-    localStorage.removeItem("gen6_gh_token");
+    localStorage.removeItem(STORAGE_KEYS.GH_REPO);
+    localStorage.removeItem(STORAGE_KEYS.GH_BRANCH);
+    localStorage.removeItem(STORAGE_KEYS.GH_TOKEN);
     ghSha = null;
-    if (syncMode === "github") {
-      syncMode = "offline";
-      setSyncStatus("offline", "Sync", "Click to configure GitHub sync");
+    if (syncMode === SYNC_MODES.GITHUB) {
+      syncMode = SYNC_MODES.OFFLINE;
+      setSyncStatus(SYNC_STATUS.OFFLINE, "Sync", "Click to configure GitHub sync");
       updateEditModeUI();
     }
     showToast("GitHub sync settings cleared.");
@@ -998,14 +1024,14 @@
       return;
     }
 
-    setSyncStatus("saving", "Connecting...", "Validating GitHub credentials");
+    setSyncStatus(SYNC_STATUS.SAVING, "Connecting...", "Validating GitHub credentials");
     try {
       const info = await fetchGitHubCaught(repo, branch, token);
       ghSha = info.sha;
 
-      localStorage.setItem("gen6_gh_repo", repo);
-      localStorage.setItem("gen6_gh_branch", branch);
-      localStorage.setItem("gen6_gh_token", token);
+      localStorage.setItem(STORAGE_KEYS.GH_REPO, repo);
+      localStorage.setItem(STORAGE_KEYS.GH_BRANCH, branch);
+      localStorage.setItem(STORAGE_KEYS.GH_TOKEN, token);
 
       // Merge GitHub caught list with current in-memory caught set
       let changed = false;
@@ -1017,14 +1043,14 @@
         }
       }
 
-      syncMode = "github";
-      setSyncStatus("synced", "GitHub Synced", `Connected to ${repo} (${branch})`);
+      syncMode = SYNC_MODES.GITHUB;
+      setSyncStatus(SYNC_STATUS.SYNCED, "Synced", `Connected to ${repo} (${branch})`);
       updateEditModeUI();
       closeSyncModal();
       showToast("Connected to GitHub!");
 
       if (changed) {
-        localStorage.setItem("gen6_caught", JSON.stringify(Array.from(caughtSet)));
+        localStorage.setItem(STORAGE_KEYS.CAUGHT, JSON.stringify(Array.from(caughtSet)));
         renderGrid();
         if (infoFor) showInfo(infoFor);
       } else {
@@ -1032,7 +1058,7 @@
         await pushCaughtToGitHub();
       }
     } catch (err) {
-      setSyncStatus("error", "GitHub Error", err.message);
+      setSyncStatus(SYNC_STATUS.ERROR, "GitHub Error", err.message);
       showToast("GitHub connection failed: " + err.message);
     }
   });
@@ -1401,8 +1427,8 @@
         const localData = await localRes.json();
         if (localData.local_server) {
           isLocalServer = true;
-          syncMode = "local";
-          setSyncStatus("synced", "Local Server", "Connected to local server. Saves directly to caught.json");
+          syncMode = SYNC_MODES.LOCAL;
+          setSyncStatus(SYNC_STATUS.SYNCED, "Local Server", "Connected to local server. Saves directly to caught.json");
           if (Array.isArray(localData.caught)) {
             caughtSet = new Set(localData.caught.map(Number));
           }
@@ -1415,7 +1441,7 @@
     if (!isLocalServer) {
       // Load from localStorage cache first
       try {
-        const cached = localStorage.getItem("gen6_caught");
+        const cached = localStorage.getItem(STORAGE_KEYS.CAUGHT);
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed)) {
@@ -1440,13 +1466,13 @@
       } catch (e) {}
 
       // Check if GitHub PAT sync is configured
-      const ghRepo = localStorage.getItem("gen6_gh_repo");
-      const ghToken = localStorage.getItem("gen6_gh_token");
-      const ghBranch = localStorage.getItem("gen6_gh_branch") || "main";
+      const ghRepo = localStorage.getItem(STORAGE_KEYS.GH_REPO);
+      const ghToken = localStorage.getItem(STORAGE_KEYS.GH_TOKEN);
+      const ghBranch = localStorage.getItem(STORAGE_KEYS.GH_BRANCH) || "main";
 
       if (ghRepo && ghToken) {
-        syncMode = "github";
-        setSyncStatus("saving", "GitHub Sync", "Checking GitHub repository");
+        syncMode = SYNC_MODES.GITHUB;
+        setSyncStatus(SYNC_STATUS.SAVING, "Syncing...", "Checking GitHub repository");
         fetchGitHubCaught(ghRepo, ghBranch, ghToken)
           .then((info) => {
             ghSha = info.sha;
@@ -1458,27 +1484,27 @@
                 merged = true;
               }
             }
-            setSyncStatus("synced", "GitHub Synced", `Connected to ${ghRepo} (${ghBranch})`);
+            setSyncStatus(SYNC_STATUS.SYNCED, "Synced", `Connected to ${ghRepo} (${ghBranch})`);
             updateEditModeUI();
             if (merged) {
-              localStorage.setItem("gen6_caught", JSON.stringify(Array.from(caughtSet)));
+              localStorage.setItem(STORAGE_KEYS.CAUGHT, JSON.stringify(Array.from(caughtSet)));
               renderGrid();
               if (infoFor) showInfo(infoFor);
             }
           })
           .catch((err) => {
-            setSyncStatus("error", "GitHub Error", err.message);
+            setSyncStatus(SYNC_STATUS.ERROR, "GitHub Error", err.message);
           });
       } else {
-        syncMode = "offline";
-        setSyncStatus("offline", "Sync", "Click to configure GitHub sync");
+        syncMode = SYNC_MODES.OFFLINE;
+        setSyncStatus(SYNC_STATUS.OFFLINE, "Sync", "Click to configure GitHub sync");
       }
     }
 
     updateEditModeUI();
     renderGrid();
 
-    const savedNdex = localStorage.getItem("gen6ndex");
+    const savedNdex = localStorage.getItem(STORAGE_KEYS.NDEX);
     const initial = (savedNdex && pokemon.find((p) => p.Ndex === savedNdex)) || pokemon[current * PER_BOX];
     if (initial) showInfo(initial);
 
